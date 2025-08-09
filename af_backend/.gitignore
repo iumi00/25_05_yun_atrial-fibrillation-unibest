@@ -1,0 +1,19 @@
+# 依赖包文件夹
+node_modules
+
+# 编译或打包产物
+dist
+build
+
+# 日志文件
+*.log
+npm-debug.log*
+
+# 操作系统生成的文件
+.DS_Store
+Thumbs.db
+
+# 环境变量文件 (极其重要，绝不能上传！)
+.env
+.env.local
+.env.*.local

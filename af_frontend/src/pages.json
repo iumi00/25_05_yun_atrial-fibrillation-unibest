@@ -1,0 +1,160 @@
+{
+  "globalStyle": {
+    "navigationStyle": "default",
+    "navigationBarTitleText": "unibest",
+    "navigationBarBackgroundColor": "#f8f8f8",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFFFFF"
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^fg-(.*)": "@/components/fg-$1/fg-$1.vue",
+      "^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue",
+      "^(?!z-paging-refresh|z-paging-load-more)z-paging(.*)": "z-paging/components/z-paging$1/z-paging$1.vue"
+    }
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#018d71",
+    "backgroundColor": "#F8F8F8",
+    "borderStyle": "black",
+    "height": "50px",
+    "fontSize": "10px",
+    "iconWidth": "24px",
+    "spacing": "3px",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/icon/shouye1.png",
+        "selectedIconPath": "static/icon/shouye1-copy.png"
+      },
+      {
+        "pagePath": "pages/measure/index",
+        "text": "测量",
+        "iconPath": "static/icon/zhiyejiankang.png",
+        "selectedIconPath": "static/icon/zhiyejiankang-copy-copy.png"
+      },
+      {
+        "pagePath": "pages/Chat/index",
+        "text": "智能诊断",
+        "iconPath": "static/icon/shouye1.png",
+        "selectedIconPath": "static/icon/shouye1-copy.png"
+      }
+    ]
+  },
+  "subPackages": [
+    {
+      "root": "pages-sub",
+      "pages": [
+        {
+          "path": "A_demo/index",
+          "type": "page",
+          "style": {
+            "navigationStyle": "default",
+            "navigationBarTitleText": "分包页面 标题"
+          }
+        },
+        {
+          "path": "bleedRiskScore/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "出血风险评分"
+          }
+        },
+        {
+          "path": "bleedRiskScoring/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "出血风险评分"
+          }
+        },
+        {
+          "path": "forgetPwd/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "忘记密码"
+          }
+        },
+        {
+          "path": "historyScore/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "历史分数"
+          }
+        },
+        {
+          "path": "historyScoreItem/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "历史分数"
+          }
+        },
+        {
+          "path": "login/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "登录"
+          }
+        },
+        {
+          "path": "profile/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "编辑个人资料"
+          }
+        },
+        {
+          "path": "register/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "注册"
+          }
+        },
+        {
+          "path": "scienceArticle/index",
+          "type": "page"
+        },
+        {
+          "path": "thrombusScore/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "房颤风险评分"
+          }
+        },
+        {
+          "path": "thrombusScoring/index",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "房颤风险评分"
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "type": "home",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    },
+    {
+      "path": "pages/Chat/index",
+      "type": "page",
+      "style": {
+        "navigationBarTitleText": "Ai对话"
+      }
+    },
+    {
+      "path": "pages/measure/index",
+      "type": "page",
+      "style": {
+        "navigationStyle": "default",
+        "navigationBarTitleText": "房颤检测"
+      }
+    }
+  ]
+}

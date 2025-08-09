@@ -1,0 +1,81 @@
+/* 在线链接服务仅供平台体验和调试使用，平台不承诺服务的稳定性，企业客户需下载字体包自行发布使用并做好备份。 */
+@font-face {
+  font-family: 'iconfont';
+  /* Project id 4694307 */
+  src:
+    url('https://at.alicdn.com/t/c/font_4694307_wxjjrvz995s.woff2?t=1727852293629') format('woff2'),
+    url('https://at.alicdn.com/t/c/font_4694307_wxjjrvz995s.woff?t=1727852293629') format('woff'),
+    url('https://at.alicdn.com/t/c/font_4694307_wxjjrvz995s.ttf?t=1727852293629') format('truetype');
+}
+
+.iconfont {
+  font-family: 'iconfont' !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-weixin:before {
+  content: '\e607';
+}
+
+.icon-shouye1-copy:before {
+  content: '\e95d';
+}
+
+.icon-zhiyejiankang-copy-copy:before {
+  content: '\e95f';
+}
+
+.icon-shouye:before {
+  content: '\e636';
+}
+
+.icon-shezhi:before {
+  content: '\e643';
+}
+
+.icon-xindiantu:before {
+  content: '\e604';
+}
+
+.icon-shizhong:before {
+  content: '\e630';
+}
+
+.icon-navicon-jkgy:before {
+  content: '\e67e';
+}
+
+.icon-xinxi:before {
+  content: '\e629';
+}
+
+.icon-xin-:before {
+  content: '\e60d';
+}
+
+.icon-shouye1:before {
+  content: '\e615';
+}
+
+.icon-24gf-bubblesDots3:before {
+  content: '\e95c';
+}
+
+.icon-kaoshi:before {
+  content: '\e60e';
+}
+
+.icon-zhiyejiankang:before {
+  content: '\e635';
+}
+
+.icon-xiangyou2:before {
+  content: '\e640';
+}
+
+.icon-shebeixiangling:before {
+  content: '\e657';
+}
