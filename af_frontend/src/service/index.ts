@@ -102,15 +102,62 @@ $http.afterRequest = async function (res, resolve, reject) {
  */
 import { _getRequest } from '@/utils/myRequest'
 
+// 获取正确的后端地址
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL
+  console.log('原始VITE_API_URL:', envUrl)
+  
+  // 检查URL是否有效
+  if (!envUrl || envUrl === 'undefined' || envUrl === 'null') {
+    console.log('环境变量VITE_API_URL无效，使用默认地址')
+    return 'http://localhost:3000'
+  }
+  
+  // 如果环境变量指向Apifox，则使用本地后端
+  if (envUrl.includes('apifoxmock.com')) {
+    console.log('检测到Apifox地址，使用本地后端')
+    return 'http://localhost:3000'
+  }
+  
+  // 验证URL格式
+  try {
+    new URL(envUrl)
+    console.log('使用环境变量中的地址:', envUrl)
+    return envUrl
+  } catch (error) {
+    console.log('环境变量URL格式无效，使用默认地址')
+    return 'http://localhost:3000'
+  }
+}
+
+const baseUrl = getBaseUrl()
+console.log('最终使用的后端地址:', baseUrl)
+
 // todo: 更改各个请求方法以适配 $http(axios)
-export const $http = _getRequest(import.meta.env.VITE_API_URL)
+export const $http = _getRequest(baseUrl)
 // 配置拦截器
-$http.interceptors.request.use()
+$http.interceptors.request.use(
+  (config) => {
+    console.log('发送请求到:', config.url)
+    console.log('请求方法:', config.method)
+    console.log('请求参数:', config.params)
+    console.log('请求头:', config.headers)
+    
+    return config
+  },
+  (error) => {
+    console.error('请求拦截器错误:', error)
+    return Promise.reject(error)
+  }
+)
 $http.interceptors.response.use(
   (res) => {
+    console.log('收到响应:', res)
     return res.data
   },
   (err) => {
+    console.error('API请求错误:', err)
+    console.error('错误详情:', err.response)
     return Promise.reject(err)
   },
 )

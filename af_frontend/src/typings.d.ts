@@ -24,5 +24,26 @@ declare global {
     token?: string
   }
 }
+//问卷相关
+declare module '@/types/api' {
+  export interface ApiResponse<T = any> {
+    success: boolean;
+    message?: string;
+    data: T;
+    error?: any;
+  }
+
+  export interface QuestionItem {
+    id: number;
+    itemTitle: string;
+    itemScore: number;
+    type: 'radio' | 'checkbox' | 'text' | 'number';
+    options?: Array<{
+      value: number;
+      label: string;
+      score?: number;
+    }>;
+  }
+}
 
 export {} // 防止模块污染

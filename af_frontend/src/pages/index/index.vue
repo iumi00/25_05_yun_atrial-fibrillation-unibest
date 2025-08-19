@@ -18,12 +18,11 @@ const userStore = useUserStore()
 import indexGridBoxesVue from '../../components/indexGridBoxes/indexGridBoxes.vue'
 import indexScoreListVue from '../../components/indexScoreList/indexScoreList.vue'
 import indexScienceCardVue from '../../components/indexScienceCard/indexScienceCard.vue'
+import knowledgeSelfTest from '@/components/knowledge-self-test/knowledge-self-test.vue'
 import { formatTime2yyyymmddhhmmss } from '@/utils/timeCompiler'
 
 import { computed, ref } from 'vue'
 import {
-  _api_getMyQuestionnaireList,
-  _api_getPopularizationArticle,
   // _api_getUserInfo,
 } from '@/service'
 
@@ -126,7 +125,7 @@ const scienceCardList = ref([
 // const userId = uni.getStorageSync('userId')
 // 5. 【修改】注意：现在 token 和 userId 都应该从 userStore 中获取，这样更安全和规范
 const accessToken = userStore.userInfo.token
-const userId = userStore.userInfo.id
+const userId = String(userStore.userInfo.id)
 
 /**
  * 异步获取用户信息
@@ -148,17 +147,24 @@ const userId = userStore.userInfo.id
  *
  * @param {string} type 问卷类型,CHA2DS2-VASc、HAS-BLED
  */
-async function getMyQuestionnaireList(type) {
+async function getMyQuestionnaireList(type:string) {
   // 调用API获取用户特定类型的问卷列表
-  const res = await _api_getMyQuestionnaireList({ userId, type }, { accessToken })
+try {
+    // 调用API获取用户特定类型的问卷列表
+    const response = await _api_getMyQuestionnaireList({ userId, type }, { accessToken })
 
-  // 根据问卷类型更新相应的分数
-  if (type == 'CHA2DS2-VASc') {
-    score.value[0] = res.data[0].score
-  } else if (type == 'HAS-BLED') {
-    score.value[1] = res.data[0].score
-  } else {
-    console.log('未知问卷类型')
+    if (response.success && response.data.length > 0) {
+      // 根据问卷类型更新相应的分数
+      if (type == 'CHA2DS2-VASc') {
+        score.value[0] = response.data[0].score
+      } else if (type == 'HAS-BLED') {
+        score.value[1] = response.data[0].score
+      } else {
+        console.log('未知问卷类型')
+      }
+    }
+  } catch (error) {
+    console.error('获取问卷列表失败:', error)
   }
 }
 
@@ -192,6 +198,7 @@ async function _init() {
 onMounted(async () => {
   await _init()
 })
+
 </script>
 
 <template>
@@ -205,12 +212,12 @@ onMounted(async () => {
             <image :src="userStore.userInfo.avatar || ''" mode="scaleToFill"></image>
           </view>
           <view class="info">
-          <view class="username">姓名：{{ userStore.userInfo.nickname || '点击设置昵称' }}</view>
-          <view class="phone">电话：{{ userStore.userInfo.phone || '点击设置电话' }}</view>
-         </view>
-         <!-- 添加一个向右的箭头，提示用户可以点击 -->
-         <view class="arrow"> > </view>
-       </view>
+            <view class="username">姓名：{{ userStore.userInfo.nickname || '点击设置昵称' }}</view>
+            <view class="phone">电话：{{ userStore.userInfo.phone || '点击设置电话' }}</view>
+          </view>
+          <!-- 添加一个向右的箭头，提示用户可以点击 -->
+          <view class="arrow"> > </view>
+        </view>
       </navigator>
     </view>
 
@@ -226,15 +233,10 @@ onMounted(async () => {
 
     <view class="box">
       <view class="gridBoxes">
-        <view class="gridBoxesItem" v-for="(item, index) in gridBoxesList" :key="index">
-          <indexGridBoxesVue
-            :icontext="item.icontext"
-            :text="item.text"
-            :textSize="item.textSize"
-            :fontSize="item.fontSize"
-            :fontBGColor="item.fontBGColor"
-            :fontColor="item.fontColor"
-          ></indexGridBoxesVue>
+        <view class="gridBoxesItem" v-for="(item, index)
+          in gridBoxesList" :key="index">
+          <indexGridBoxesVue :icontext="item.icontext" :text="item.text" :textSize="item.textSize"
+            :fontSize="item.fontSize" :fontBGColor="item.fontBGColor" :fontColor="item.fontColor"></indexGridBoxesVue>
         </view>
 
         <!-- 后面做点击事件可以考虑增加一个自定义属性 -->
@@ -248,13 +250,8 @@ onMounted(async () => {
         <view class="scoreCardList">
           <view v-for="(item, index) in scoreListWithScore" :key="index" class="grayBox">
             <navigator :url="item.url">
-              <indexScoreListVue
-                :mainTitle="item.mainTitle"
-                :subTitle="item.subTitle"
-                :icontext="item.icontext"
-                :iconColor="item.iconColor"
-                :score="item.score"
-              ></indexScoreListVue>
+              <indexScoreListVue :mainTitle="item.mainTitle" :subTitle="item.subTitle" :icontext="item.icontext"
+                :iconColor="item.iconColor" :score="item.score"></indexScoreListVue>
             </navigator>
           </view>
         </view>
@@ -268,12 +265,8 @@ onMounted(async () => {
 
       <view class="science">
         <view class="scienceItem" v-for="item in scienceCardList" :key="item.id">
-          <indexScienceCardVue
-            :title="item.title"
-            :time="item.time"
-            :src="item.src"
-            :href="item.href"
-          ></indexScienceCardVue>
+          <indexScienceCardVue :title="item.title" :time="item.time" :src="item.src" :href="item.href">
+          </indexScienceCardVue>
         </view>
       </view>
     </view>
@@ -335,7 +328,7 @@ onMounted(async () => {
   height: 60rpx;
   line-height: 60rpx;
 
-  > view {
+  >view {
     flex-shrink: 0;
     flex-grow: 0;
     font-size: $uni-font-size-base;
@@ -401,7 +394,7 @@ onMounted(async () => {
       display: flex;
       justify-content: space-between;
 
-      > view {
+      >view {
         width: 45%;
       }
     }

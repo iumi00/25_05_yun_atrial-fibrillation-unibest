@@ -4,11 +4,11 @@
     <view class="btn">
       <radio-group name="" @change="Changehandler">
         <label @click="handlerBtn1">
-          <radio :value="score" />
+          <radio :value="String(score)" />
           <view :class="{ active: activeFlag1 === true }">是</view>
         </label>
         <label @click="handlerBtn2">
-          <radio :value="0" />
+          <radio :value="String(0)" />
           <view :class="{ active: activeFlag2 === true }">否</view>
         </label>
       </radio-group>

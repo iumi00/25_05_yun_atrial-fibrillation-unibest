@@ -81,7 +81,7 @@
           "path": "historyScore/index",
           "type": "page",
           "style": {
-            "navigationBarTitleText": "历史分数"
+            "navigationBarTitleText": "历史记录"
           }
         },
         {
@@ -120,14 +120,14 @@
           "path": "thrombusScore/index",
           "type": "page",
           "style": {
-            "navigationBarTitleText": "房颤风险评分"
+            "navigationBarTitleText": "血栓风险评分"
           }
         },
         {
           "path": "thrombusScoring/index",
           "type": "page",
           "style": {
-            "navigationBarTitleText": "房颤风险评分"
+            "navigationBarTitleText": "血栓风险评分"
           }
         }
       ]
