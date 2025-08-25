@@ -55,13 +55,19 @@ exports.getQuestionnaireList = async (req, res) => {
       
       // 组装题目和选项
       questions = itemRows.map(item => {
-        const options = optionRows
+        let options;
+        if(item.type === 'datetime'){
+          // 时间选择器不需要选项
+          options=[];
+        }else{
+          options = optionRows
           .filter(option => option.item_id === item.id)
           .map(option => ({
             value: option.value,
             label: option.label,
             score: option.score
           }));
+        }
         
         return {
           ...item,
@@ -70,7 +76,7 @@ exports.getQuestionnaireList = async (req, res) => {
       });
     }
     
-    // console.log('返回的题目数据:', questions); // 添加日志
+    console.log('返回的题目数据:', questions); // 添加日志
     
     res.json({
       success: true,

@@ -37,7 +37,7 @@ declare module '@/types/api' {
     id: number;
     itemTitle: string;
     itemScore: number;
-    type: 'radio' | 'checkbox' | 'text' | 'number';
+    type: 'radio' | 'checkbox' | 'text' | 'number' | 'datetime';
     options?: Array<{
       value: number;
       label: string;

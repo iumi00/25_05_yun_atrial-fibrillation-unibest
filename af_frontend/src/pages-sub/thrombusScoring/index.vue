@@ -40,9 +40,40 @@
             <text v-else-if="formData[question.id] >= 60" class="score-highlight">年龄60~65岁，加1分</text> -->
             </view>
         </view>
+
+        <!-- 房颤相关症状 - 添加级联效果 -->
+    <view v-else-if="question.type === 'checkbox' && question.itemTitle.includes('房颤相关症状')" class="checkbox-group">
+          <checkbox-group 
+            :value="(formData[question.id] as string[]) || []" 
+            @change="e => handleCheckboxChange(question.id, e.detail.value)"
+          >
+            <label v-for="option in question.options" :key="option.value" class="checkbox-option">
+              <checkbox :value="String(option.value)" />
+              <text>{{ option.label }}</text>
+            </label>
+          </checkbox-group>
+          
+          <!-- 其他症状输入框 - 修复级联显示条件 -->
+          <view v-if="shouldShowOtherInput(question.id)" class="other-input">
+            <view class="input-label">
+              <text>请详细描述其他症状：</text>
+            </view>
+            <textarea 
+              v-model="otherSymptoms[question.id]" 
+              placeholder="请输入其他症状的详细描述..."
+              class="textarea-field"
+              :maxlength="200"
+              :show-confirm-bar="false"
+            />
+            <view class="char-count">
+              <text>{{ (otherSymptoms[question.id] || '').length }}/200</text>
+            </view>
+          </view>
+        </view>
         
         <!-- 单选框 -->
-        <radio-group 
+         <view v-else-if="question.type==='radio'">
+          <radio-group 
           :value="String(formData[question.id])"
           @change="e => handleRadioChange(question.id, e.detail.value)"
         >
@@ -55,6 +86,37 @@
             <text>{{ option.label }}</text>
           </label>
         </radio-group>
+         </view>
+        <!-- 多选框 -->
+        <view v-else-if="question.type==='checkbox'"  class="checkbox-group">
+          <checkbox-group
+          :value="formData[question.id] || []"
+           @change="e => handleCheckboxChange(question.id, e.detail.value)"
+           >
+            <label 
+              v-for="option in question.options" 
+              :key="option.value" 
+              class="checkbox-option"
+              >
+              <checkbox :value="String(option.value)" class="checkBox"/>
+              <text>{{ option.label }}</text>
+            </label>
+          </checkbox-group>
+        </view>
+         <!-- 检测时间 -->
+        <view v-else-if="question.type === 'datetime' && question.itemTitle.includes('检测时间')" class="datetime-picker">
+          <picker mode="date" :value="getDateTimeValue(question.id, 'date') || ''" @change="e => handleDateChange(question.id, e.detail.value)">
+            <view class="picker-item">
+              <text>日期：{{ getDateTimeValue(question.id, 'date') || '请选择' }}</text>
+            </view>
+          </picker>
+          <picker mode="time" :value="getDateTimeValue(question.id, 'time') || ''" @change="e => handleTimeChange(question.id, e.detail.value)">
+            <view class="picker-item">
+              <text>时间：{{ getDateTimeValue(question.id, 'time') || '请选择' }}</text>
+            </view>
+          </picker>
+        </view>
+
       </view>
     </view>
 
@@ -76,16 +138,18 @@ import dayjs from 'dayjs'
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store'
 import { _api_getQuestionnaireList, _api_commitData } from '@/service'
-import type { QuestionItem } from '@/types/api'
+import type { QuestionItem, FormDataValue, DateTimeValue } from '@/types/questionnaire'
 
 const userStore = useUserStore()
 const accessToken = userStore.userInfo.token
 const userId = userStore.userInfo.id
 
-const loading = ref(true)
+const loading = ref(false)
 const questions = ref<QuestionItem[]>([])
-const formData = ref<Record<number, number|string|undefined>>({})
-const score = ref<number | null>(null)
+const score = ref(0)
+const otherSymptoms = ref<Record<number, string>>({})
+
+const formData = ref<FormDataValue>({})
 
 // 加载问卷配置
 const loadQuestionnaireConfig = async () => {
@@ -100,8 +164,8 @@ const loadQuestionnaireConfig = async () => {
     if (response && response.success) {
       questions.value = response.data
       // 初始化表单数据
-      questions.value.forEach(question => {
-          formData.value[question.id] = undefined // 默认选择"否"
+       questions.value.forEach(question => {
+        formData.value[question.id] = undefined;
       })
       calculateScore()
     } else {
@@ -119,7 +183,77 @@ const loadQuestionnaireConfig = async () => {
   }
 }
 
-
+// 数据清理函数 - 优化datetime和症状处理
+const cleanFormData = () => {
+  const cleanedData: Record<number, string> = {}
+  
+  questions.value.forEach(question => {
+    const value = formData.value[question.id]
+    
+    if (question.type === 'datetime') {
+      // 处理时间数据 - 转换为datetime格式
+      if (value && typeof value === 'object' && 'date' in value && 'time' in value) {
+        const dateTimeValue = value as DateTimeValue
+        if (dateTimeValue.date && dateTimeValue.time) {
+          const formattedDateTime = formatDateTime(dateTimeValue.date, dateTimeValue.time)
+          if (formattedDateTime) {
+            cleanedData[question.id] = formattedDateTime
+          } else {
+            cleanedData[question.id] = '时间格式错误'
+          }
+        } else {
+          cleanedData[question.id] = '未选择完整时间'
+        }
+      } else {
+        cleanedData[question.id] = '未选择时间'
+      }
+    } else if (question.type === 'checkbox') {
+      // 处理多选数据 - 优化症状处理
+      if (Array.isArray(value) && value.length > 0) {
+        const symptoms = [...value] // 创建副本避免修改原数组
+        
+        // 处理"其他"症状
+        const otherIndex = symptoms.indexOf('其他')
+        if (otherIndex !== -1) {
+          const otherText = otherSymptoms.value[question.id]?.trim()
+          if (otherText) {
+            // 替换"other"为具体的症状描述
+            symptoms[otherIndex] = `其他：${otherText}`
+          } else {
+            // 如果没有输入具体症状，移除"other"
+            symptoms.splice(otherIndex, 1)
+          }
+        }
+        
+        if (symptoms.length > 0) {
+          cleanedData[question.id] = symptoms.join('；')
+        } else {
+          cleanedData[question.id] = '未选择症状'
+        }
+      } else {
+        cleanedData[question.id] = '未选择症状'
+      }
+    } else if (question.type === 'complex_radio') {
+      // 处理复杂单选
+      if (typeof value === 'string' && value.startsWith('yes_')) {
+        const drugType = value.replace('yes_', '')
+        const drugLabel = question.options?.find(opt => opt.value === drugType)?.label || drugType
+        cleanedData[question.id] = `是，${drugLabel}`
+      } else {
+        cleanedData[question.id] = value === 'yes' ? '是' : '否'
+      }
+    } else {
+      // 处理普通单选和数字输入
+      if (value === undefined || value === null || value === '') {
+        cleanedData[question.id] = '未选择'
+      } else {
+        cleanedData[question.id] = String(value)
+      }
+    }
+  })
+  
+  return cleanedData
+}
 
 // 计算总分
 const calculateScore = () => {
@@ -134,7 +268,15 @@ const calculateScore = () => {
         totalScore += selectedOption.score;
         console.log(`${question.itemTitle} 选择: ${selectedOption.label}, 得分: ${selectedOption.score}, 当前总分: ${totalScore}`);
       }
-    } else if (question.type === 'number') {
+    } else if (question.type === 'checkbox' && Array.isArray(value)) {
+      // 处理多选
+      value.forEach(selectedValue => {
+        const selectedOption = question.options?.find(option => option.value == selectedValue)
+        if (selectedOption && selectedOption.score !== undefined) {
+          totalScore += selectedOption.score
+        }
+      })
+    }else if (question.type === 'number'&& typeof value === 'number') {
       // 年龄等数字输入题目的特殊处理
       if (question.itemTitle.includes('年龄')) {
         const age = Number(value);
@@ -148,8 +290,6 @@ const calculateScore = () => {
       }
     }
   })
-  
-  
   score.value = totalScore
    console.log('最终评分:', totalScore)
 }
@@ -166,25 +306,154 @@ const handleRadioChange = (questionId: number, value: string) => {
   calculateScore()
 }
 
+// 添加辅助函数来安全获取datetime值
+const getDateTimeValue = (questionId: number, field: 'date' | 'time'): string => {
+  const value = formData.value[questionId]
+  if (value && typeof value === 'object' && 'date' in value && 'time' in value) {
+    return (value as DateTimeValue)[field] || ''
+  }
+  return ''
+}
+
+// 处理日期选择
+const handleDateChange = (questionId: number, date: string) => {
+  const currentValue = formData.value[questionId]
+  if (typeof currentValue === 'object' && currentValue !== null && 'date' in currentValue) {
+    (currentValue as DateTimeValue).date = date
+  } else {
+    formData.value[questionId] = { date, time: '' } as DateTimeValue
+  }
+  calculateScore()
+}
+
+// 处理时间选择
+const handleTimeChange = (questionId: number, time: string) => {
+  const currentValue = formData.value[questionId]
+  if (typeof currentValue === 'object' && currentValue !== null && 'time' in currentValue) {
+    (currentValue as DateTimeValue).time = time
+  } else {
+    formData.value[questionId] = { date: '', time } as DateTimeValue
+  }
+  calculateScore()
+}
+// 判断是否显示"其他"输入框
+const shouldShowOtherInput = (questionId: number): boolean => {
+  const value = formData.value[questionId]
+  console.log(`检查题目${questionId}是否显示其他输入框:`, value)
+  
+  if (Array.isArray(value)) {
+    const hasOther = value.includes('其他')
+    console.log(`题目${questionId}包含other选项:`, hasOther)
+    return hasOther
+  }
+  return false
+}
+
+// 处理复选框变化 - 优化级联逻辑
+const handleCheckboxChange = (questionId: number, values: string[]) => {
+  console.log(`复选框变化 - 题目${questionId}:`, values)
+  formData.value[questionId] = values
+  
+  // 如果取消选择"其他"，清空输入内容
+  if (!values.includes('其他')) {
+    otherSymptoms.value[questionId] = ''
+  }
+  
+  calculateScore()
+}
+
+// 格式化日期时间为datetime字符串
+const formatDateTime = (date: string, time: string): string => {
+  if (!date || !time) {
+    return ''
+  }
+  
+  try {
+    // 将日期和时间组合成ISO格式
+    const dateTimeString = `${date} ${time}:00`
+    const dateObj = new Date(dateTimeString)
+    
+    // 检查日期是否有效
+    if (isNaN(dateObj.getTime())) {
+      console.warn('无效的日期时间格式:', dateTimeString)
+      return ''
+    }
+    
+    // 返回ISO格式的datetime字符串
+    return dateObj.toISOString()
+  } catch (error) {
+    console.error('日期时间格式化失败:', error)
+    return ''
+  }
+}
+
 // 提交表单
 const submitForm = async () => {
   // 验证是否所有题目都已回答
-  for (const question of questions.value) {
-    console.log('formData',formData.value)
-    if(formData.value[question.id] === undefined) {
+  // for (const question of questions.value) {
+  //   console.log('formData',formData.value)
+  //   if(formData.value[question.id] === undefined) {
+  //     uni.showToast({
+  //       title: '请完成所有题目',
+  //       icon: 'error'
+  //     })
+  //     return
+  //   }
+  // }
+
+  // uni.showLoading({
+  //   title: '提交中'
+  // })
+
+  try {
+     // 验证表单数据完整性
+    const validationErrors: string[] = []
+    
+    for (const question of questions.value) {
+      const value = formData.value[question.id]
+      console.log('question',question,value)
+      if (question.required) {
+        if (question.type === 'radio' || question.type === 'complex_radio') {
+          if (value === undefined || value === null || value === '') {
+            validationErrors.push(`${question.itemTitle} 未选择`)
+          }
+        } else if (question.type === 'number') {
+          if (value === undefined || value === null || value === '' || isNaN(Number(value))) {
+            validationErrors.push(`${question.itemTitle} 请输入有效数字`)
+          }
+        } else if (question.type === 'datetime') {
+          if (value && typeof value === 'object' && 'date' in value && 'time' in value) {
+            const dateTimeValue = value as DateTimeValue
+            if (!dateTimeValue.date || !dateTimeValue.time) {
+              validationErrors.push(`${question.itemTitle} 请选择完整时间`)
+            }
+          } else {
+            validationErrors.push(`${question.itemTitle} 请选择时间`)
+          }
+        } else if (question.type === 'checkbox') {
+          console.log('checkbox',value)
+          if (!Array.isArray(value) || value.length === 0 ||value === undefined) {
+            validationErrors.push(`${question.itemTitle} 请至少选择一个选项`)
+          } else if (value.includes('其他') && !otherSymptoms.value[question.id]?.trim()) {
+            validationErrors.push(`${question.itemTitle} 选择"其他"时请填写具体症状`)
+          }
+        }
+      }
+    }
+    
+    if (validationErrors.length > 0) {
       uni.showToast({
-        title: '请完成所有题目',
-        icon: 'error'
+        title: validationErrors[0],
+        icon: 'none',
+        duration: 2000
       })
       return
     }
-  }
 
-  uni.showLoading({
-    title: '提交中'
-  })
+    // 清理数据
+    const cleanedData = cleanFormData()
+    console.log('清理后的表单数据:', cleanedData)
 
-  try {
     // 准备提交数据
 
     const data = {
@@ -193,9 +462,14 @@ const submitForm = async () => {
       score: score.value,
       answers: formData.value,
       submitTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-      status: 'completed'
+      status: 'completed',
+      rawData: {
+        formData: formData.value,
+        otherSymptoms: otherSymptoms.value
+      }
     }
     console.log('data',data)
+    uni.showLoading({ title: '提交中...' })
 
     const response = await _api_commitData(data, { accessToken })
     
@@ -209,8 +483,18 @@ const submitForm = async () => {
 
       // 跳转到结果页面
        setTimeout(() => {
+        const targetUrl = `/pages-sub/thrombusScore/index?score=${score.value}`
       uni.navigateTo({
-        url: `/pages-sub/thrombusScore/index?score=${score.value}`
+        url: targetUrl,
+        success: () => {
+            console.log('跳转成功')
+          },
+          fail: (err) => {
+            console.error('跳转失败:', err)
+            uni.redirectTo({
+              url: targetUrl
+            })
+          }
       })
     },1000)
     } else {
@@ -329,6 +613,114 @@ onMounted(() => {
   }
 }
 
+.datetime-picker {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  
+  .picker-item {
+    flex: 1;
+    padding: 20rpx;
+    border: 2rpx solid #e0e0e0;
+    border-radius: 8rpx;
+    text-align: center;
+    background-color: #f9f9f9;
+  }
+}
+.checkbox-group {
+  .checkbox-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15rpx;
+    padding: 15rpx;
+    text {
+      margin-left: 15rpx;
+      font-size: 28rpx;
+    }
+  }
+  
+  .other-input {
+    margin-top: 20rpx;
+    margin-left: 40rpx;
+    padding: 20rpx;
+    background-color: #f8f9fa;
+    border-radius: 8rpx;
+    border: 2rpx solid #e9ecef;
+    .input-label {
+      margin-bottom: 15rpx;
+      
+      text {
+        font-size: 28rpx;
+        color: #495057;
+        font-weight: 500;
+      }
+    }
+    
+    .textarea-field {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 120rpx;
+      padding: 20rpx;
+      border: 2rpx solid #dee2e6;
+      border-radius: 8rpx;
+      background-color: #fff;
+      font-size: 28rpx;
+      line-height: 1.5;
+      resize: none;
+      &:focus {
+        border-color: #007bff;
+        outline: none;
+      }
+    }
+    
+    .char-count {
+      margin-top: 10rpx;
+      text-align: right;
+      
+      text {
+        font-size: 24rpx;
+        color: #6c757d;
+      }
+    }
+  }
+}
+
+.datetime-picker {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  
+  .picker-item {
+    flex: 1;
+    padding: 20rpx;
+    border: 2rpx solid #e0e0e0;
+    border-radius: 8rpx;
+    text-align: center;
+    background-color: #f9f9f9;
+    transition: border-color 0.3s ease;
+    
+    &:active {
+      border-color: #007bff;
+      background-color: #e3f2fd;
+    }
+  }
+}
+
+// 添加动画效果
+.other-input {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 .footer {
   background-color: white;
   border-top: 1px solid #b8b8b8;
