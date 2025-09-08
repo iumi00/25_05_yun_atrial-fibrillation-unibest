@@ -57,6 +57,13 @@
           }
         },
         {
+          "path": "bleedRiskScore/form",
+          "type": "page",
+          "style": {
+            "navigationBarTitleText": "出血风险评分"
+          }
+        },
+        {
           "path": "bleedRiskScore/index",
           "type": "page",
           "style": {

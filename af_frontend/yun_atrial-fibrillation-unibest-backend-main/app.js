@@ -14,7 +14,7 @@ const app = express();
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console()],
 });
 
 app.use(express.json());
@@ -33,4 +33,4 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
-}); 
+});

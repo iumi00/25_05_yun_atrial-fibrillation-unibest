@@ -13,21 +13,30 @@ const getBaseUrl = () => {
 }
 
 const baseUrl = getBaseUrl()
-export function _api_getQuestionnaireList(data: { type: string }, headers = {}): Promise<ApiResponse<QuestionItem[]>> {
-  return $http.get(`/api/user/question`, { params:data, headers:{
-    'Content-Type': 'application/json',
-      ...headers
-  } })
+export function _api_getQuestionnaireList(
+  data: { type: string },
+  headers = {},
+): Promise<ApiResponse<QuestionItem[]>> {
+  return $http.get(`/api/user/question`, {
+    params: data,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
+    },
+  })
 }
 
-export function _api_commitData(data: {
-  userId: string;
-  questionnaireType: string;
-  score: number;
-  answers: Record<number, any>;
-  submitTime: string,
-  status: string
-}, headers:{}): Promise<ApiResponse<{ answerId: number }>> {
+export function _api_commitData(
+  data: {
+    userId: string
+    questionnaireType: string
+    score: number
+    answers: Record<number, any>
+    submitTime: string
+    status: string
+  },
+  headers: {},
+): Promise<ApiResponse<{ answerId: number }>> {
   return $http.post(`/api/user/commit`, data, { headers })
 }
 
@@ -35,23 +44,31 @@ export function _api_delAnswer(id: string, headers): Promise<ApiResponse> {
   return $http.delete(`/api/user/answer/${id}`, { headers })
 }
 
-export function _api_getMyQuestionnaireHistory(data: {
-  userId: string;
-  type?: string;
-}, headers:{}): Promise<ApiResponse<any[]>> {
-  return $http.get(`/api/user/history`,{params:data,
-    headers:{
+export function _api_getMyQuestionnaireHistory(
+  data: {
+    userId: string
+    type?: string
+  },
+  headers: {},
+): Promise<ApiResponse<any[]>> {
+  return $http.get(`/api/user/history`, {
+    params: data,
+    headers: {
       'Content-Type': 'application/json',
-      ...headers
-    }
+      ...headers,
+    },
   })
 }
 
-export function _api_getMyQuestionnaireDetail(data: { id: string }, headers:{}): Promise<ApiResponse<any>> {
-  return $http.get(`/api/user/detail/:id`, {params:data, 
-    headers:{
+export function _api_getMyQuestionnaireDetail(
+  data: { id: string },
+  headers: {},
+): Promise<ApiResponse<any>> {
+  return $http.get(`/api/user/detail/:id`, {
+    params: data,
+    headers: {
       'Content-Type': 'application/json',
-      ...headers
-    }
+      ...headers,
+    },
   })
 }

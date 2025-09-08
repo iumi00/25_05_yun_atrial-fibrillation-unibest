@@ -12,10 +12,10 @@ import { getFormattedTimestamp } from '@/utils/timeCompiler'
 import dayjs from 'dayjs'
 import { debounce } from 'lodash'
 import { useUserStore } from '@/store'
-import { 
-  _api_startMeasurement, 
-  _api_uploadMeasurementData, 
-  _api_endMeasurement 
+import {
+  _api_startMeasurement,
+  _api_uploadMeasurementData,
+  _api_endMeasurement,
 } from '@/service/myService/measurement'
 
 const userStore = useUserStore()
@@ -99,15 +99,15 @@ async function startMeasurement() {
     const response = await _api_startMeasurement(
       {
         userId: String(userId),
-        durationSeconds: measureTime.value
+        durationSeconds: measureTime.value,
       },
-      { Authorization: accessToken }
+      { Authorization: accessToken },
     )
 
     if (response.success) {
       currentMeasurementId.value = response.data.measurementId
       console.log('测量开始，ID:', currentMeasurementId.value)
-      
+
       uni.showLoading({ title: '测量中...', mask: false, duration: 100000 })
       isMeasuring.value = true
       measurementData.value = []
@@ -127,7 +127,7 @@ async function startMeasurement() {
           z: res.z,
           timestamp: dayjs().valueOf().toString(),
         }
-        
+
         measurementData.value = [...measurementData.value, newData]
         updateChart()
       }
@@ -150,7 +150,7 @@ async function startMeasurement() {
     console.error('开始测量失败:', error)
     uni.showToast({
       title: '开始测量失败',
-      icon: 'error'
+      icon: 'error',
     })
   }
 }
@@ -162,53 +162,53 @@ async function stopMeasurement() {
       uni.offAccelerometerChange(accelerometerCallback)
       accelerometerCallback = null
     }
-    
+
     uni.stopAccelerometer()
-    
+
     if (measurementInterval) {
       clearTimeout(measurementInterval)
       measurementInterval = null
     }
-    
+
     isMeasuring.value = false
 
     // 如果有测量ID和数据，上传到后端
     if (currentMeasurementId.value && measurementData.value.length > 0) {
       console.log('上传测量数据，数据点数量:', measurementData.value.length)
-      
+
       const uploadResponse = await _api_uploadMeasurementData(
         {
           measurementId: currentMeasurementId.value,
-          data: measurementData.value
+          data: measurementData.value,
         },
-        { Authorization: accessToken }
+        { Authorization: accessToken },
       )
 
       if (uploadResponse.success) {
         console.log('数据上传成功')
-        
+
         // 结束测量
         const endResponse = await _api_endMeasurement(
           { measurementId: currentMeasurementId.value },
-          { Authorization: accessToken }
+          { Authorization: accessToken },
         )
 
         if (endResponse.success) {
           console.log('测量结束，分析结果:', endResponse.data.analysisResult)
           uni.showToast({
             title: '测量完成',
-            icon: 'success'
+            icon: 'success',
           })
         }
       }
     }
-    
+
     currentMeasurementId.value = null
   } catch (error) {
     console.error('停止测量失败:', error)
     uni.showToast({
       title: '停止测量失败',
-      icon: 'error'
+      icon: 'error',
     })
   }
 }
@@ -307,19 +307,19 @@ function exportFileCrossPlatform(content: string, filename: string) {
   // 检测平台
   const systemInfo = uni.getSystemInfoSync()
   console.log('当前平台信息:', systemInfo)
-  
+
   // #ifdef H5
   exportFileForH5(content, filename)
   // #endif
-  
+
   // #ifdef MP-WEIXIN || MP-ALIPAY || MP-BAIDU || MP-TOUTIAO || MP-QQ
   exportFileForMiniProgram(content, filename)
   // #endif
-  
+
   // #ifdef APP-PLUS
   exportFileForApp(content, filename)
   // #endif
-  
+
   // #ifndef H5 || MP-WEIXIN || MP-ALIPAY || MP-BAIDU || MP-TOUTIAO || MP-QQ || APP-PLUS
   // 其他平台使用剪贴板
   copyToClipboard(content)
@@ -331,21 +331,21 @@ function exportFileForH5(content: string, filename: string) {
   try {
     // 创建Blob对象
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
-    
+
     // 创建下载链接
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = filename
     link.style.display = 'none'
-    
+
     // 添加到页面并触发下载
     document.body.appendChild(link)
     link.click()
-    
+
     // 清理
     document.body.removeChild(link)
     URL.revokeObjectURL(link.href)
-    
+
     uni.showToast({
       title: '数据导出成功',
       icon: 'success',
@@ -361,10 +361,10 @@ function exportFileForMiniProgram(content: string, filename: string) {
   try {
     // 使用 uni.getFileSystemManager
     const fs = uni.getFileSystemManager()
-    
+
     // 创建临时文件路径
     const tempFilePath = `${uni.env.USER_DATA_PATH}/${filename}`
-    
+
     // 将CSV内容写入临时文件
     fs.writeFileSync(tempFilePath, content, 'utf8')
 
@@ -377,7 +377,7 @@ function exportFileForMiniProgram(content: string, filename: string) {
           icon: 'success',
         })
         console.log('文件保存路径:', res.savedFilePath)
-        
+
         // 尝试打开文件
         uni.openDocument({
           filePath: res.savedFilePath,
@@ -408,10 +408,10 @@ function exportFileForApp(content: string, filename: string) {
   try {
     // 使用 uni.getFileSystemManager
     const fs = uni.getFileSystemManager()
-    
+
     // 创建临时文件路径
     const tempFilePath = `${uni.env.USER_DATA_PATH}/${filename}`
-    
+
     // 将CSV内容写入临时文件
     fs.writeFileSync(tempFilePath, content, 'utf8')
 
@@ -424,7 +424,7 @@ function exportFileForApp(content: string, filename: string) {
           icon: 'success',
         })
         console.log('文件保存路径:', res.savedFilePath)
-        
+
         // 尝试打开文件
         uni.openDocument({
           filePath: res.savedFilePath,
@@ -454,19 +454,22 @@ function exportFileForApp(content: string, filename: string) {
 function copyToClipboard(content: string) {
   // #ifdef H5
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(content).then(() => {
-      uni.showToast({
-        title: '数据已复制到剪贴板',
-        icon: 'success',
+    navigator.clipboard
+      .writeText(content)
+      .then(() => {
+        uni.showToast({
+          title: '数据已复制到剪贴板',
+          icon: 'success',
+        })
       })
-    }).catch(() => {
-      fallbackCopyToClipboard(content)
-    })
+      .catch(() => {
+        fallbackCopyToClipboard(content)
+      })
   } else {
     fallbackCopyToClipboard(content)
   }
   // #endif
-  
+
   // #ifndef H5
   uni.setClipboardData({
     data: content,
@@ -481,7 +484,7 @@ function copyToClipboard(content: string) {
         title: '复制失败',
         icon: 'none',
       })
-    }
+    },
   })
   // #endif
 }
@@ -496,7 +499,7 @@ function fallbackCopyToClipboard(text: string) {
   document.body.appendChild(textArea)
   textArea.focus()
   textArea.select()
-  
+
   try {
     document.execCommand('copy')
     uni.showToast({
@@ -509,7 +512,7 @@ function fallbackCopyToClipboard(text: string) {
       icon: 'none',
     })
   }
-  
+
   document.body.removeChild(textArea)
 }
 

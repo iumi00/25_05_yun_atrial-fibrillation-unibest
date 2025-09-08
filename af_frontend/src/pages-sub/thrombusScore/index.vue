@@ -14,27 +14,27 @@ import scoreAdviceVue from '@/components/scoreAdvice/scoreAdvice.vue'
 export default {
   components: {
     scoreCircleVue,
-    scoreAdviceVue
+    scoreAdviceVue,
   },
-  
+
   data() {
     return {
       score: 0,
       type: '血栓风险总分',
       title: '综合建议',
-      text: ''
+      text: '',
     }
   },
-  
+
   onLoad(options) {
     console.log('onLoad 触发，参数:', options)
-    
+
     if (options && options.score) {
       const scoreValue = parseInt(options.score)
       this.score = scoreValue
-      
+
       console.log('设置评分:', scoreValue)
-      
+
       // 根据评分生成建议文本
       if (scoreValue >= 2) {
         this.text = `血栓风险评分为${scoreValue}的患者处于高危状态，必须进行抗凝治疗，优先选择NOACs。与此同时，需要进行密切的出血风险监测和多学科管理以确保抗凝治疗的安全性和有效性。`
@@ -49,10 +49,9 @@ export default {
       this.score = 3
       this.text = '测试：血栓风险评分为3的患者处于高危状态，必须进行抗凝治疗。'
     }
-  }
+  },
 }
 </script>
-
 
 <template>
   <view class="container">

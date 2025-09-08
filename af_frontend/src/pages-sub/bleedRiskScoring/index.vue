@@ -58,9 +58,11 @@ async function commitData() {
   }
   let data = {
     userId: uni.getStorageSync('userId'),
-    type: 'HAS-BLED',
+    questionnaireType: 'HAS-BLED',
     score: score.value,
     answers: list,
+    submitTime: new Date().toISOString(),
+    status: 'completed',
   }
   const res = await _api_commitData(data, { accessToken })
   console.log(res)
