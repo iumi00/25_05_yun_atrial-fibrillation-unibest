@@ -9,7 +9,9 @@ exports.authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, message: '认证失败，无权访问' });
+    return res
+      .status(401)
+      .json({ success: false, message: '认证失败，无权访问' });
   }
 
   // 提取真正的 token 部分 (去掉 "Bearer " 前缀)
@@ -30,8 +32,12 @@ exports.authMiddleware = (req, res, next) => {
     // 如果验证失败（比如 token 过期或签名不匹配），jwt.verify 会抛出错误
     console.error('❌ JWT 验证失败:', err.message);
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ success: false, message: '认证已过期，请重新登录' });
+      return res
+        .status(401)
+        .json({ success: false, message: '认证已过期，请重新登录' });
     }
-    return res.status(401).json({ success: false, message: '认证失败，无效的凭证' });
+    return res
+      .status(401)
+      .json({ success: false, message: '认证失败，无效的凭证' });
   }
 };

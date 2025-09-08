@@ -21,10 +21,8 @@ import indexScienceCardVue from '../../components/indexScienceCard/indexScienceC
 import knowledgeSelfTest from '@/components/knowledge-self-test/knowledge-self-test.vue'
 import { formatTime2yyyymmddhhmmss } from '@/utils/timeCompiler'
 
-import { computed, ref } from 'vue'
-import {
-  // _api_getUserInfo,
-} from '@/service'
+import { computed, ref, onMounted } from 'vue'
+import { _api_getMyQuestionnaireHistory, _api_getPopularizationArticle } from '@/service'
 
 // type IUserInfo = {
 //   phone: string
@@ -57,6 +55,7 @@ const gridBoxesList = ref([
     fontSize: '40px',
     textSize: '16px',
     fontColor: 'white',
+    url: '/pages-sub/profile/index',
   },
   {
     img: '',
@@ -66,6 +65,7 @@ const gridBoxesList = ref([
     fontSize: '50px',
     textSize: '16px',
     fontColor: 'white',
+    url: '/pages-sub/thrombusScore/index',
   },
   {
     img: '',
@@ -75,6 +75,7 @@ const gridBoxesList = ref([
     fontSize: '40px',
     textSize: '16px',
     fontColor: 'white',
+    url: '/pages-sub/scienceArticle/index',
   },
   {
     img: '',
@@ -84,6 +85,7 @@ const gridBoxesList = ref([
     fontSize: '40px',
     textSize: '16px',
     fontColor: 'white',
+    url: '/pages-sub/historyScore/index',
   },
 ])
 const scoreList = ref([
@@ -147,11 +149,11 @@ const userId = String(userStore.userInfo.id)
  *
  * @param {string} type 问卷类型,CHA2DS2-VASc、HAS-BLED
  */
-async function getMyQuestionnaireList(type:string) {
+async function getMyQuestionnaireList(type: string) {
   // 调用API获取用户特定类型的问卷列表
-try {
+  try {
     // 调用API获取用户特定类型的问卷列表
-    const response = await _api_getMyQuestionnaireList({ userId, type }, { accessToken })
+    const response = await _api_getMyQuestionnaireHistory({ userId, type }, { accessToken })
 
     if (response.success && response.data.length > 0) {
       // 根据问卷类型更新相应的分数
@@ -175,17 +177,21 @@ try {
  */
 async function getPopularizationArticle() {
   // 调用_api_getPopularizationArticle方法获取科普文章数据
-  const res = await _api_getPopularizationArticle({ accessToken })
-  // console.log(res);
-  // 将获取到的科普文章数据进行格式化处理，并赋值给scienceCardList
-  scienceCardList.value = res.data.map((item) => {
-    return {
-      id: item.id,
-      title: item.title,
-      time: formatTime2yyyymmddhhmmss(new Date(item.time)),
-      href: item.url,
-    }
-  })
+  try {
+    const res = await _api_getPopularizationArticle({ accessToken })
+    // console.log(res);
+    // 将获取到的科普文章数据进行格式化处理，并赋值给scienceCardList
+    scienceCardList.value = res.data.map((item) => {
+      return {
+        id: item.id,
+        title: item.title,
+        time: formatTime2yyyymmddhhmmss(new Date(item.time)),
+        href: item.url,
+      }
+    })
+  } catch (error) {
+    console.error('获取科普文章失败:', error)
+  }
 }
 
 async function _init() {
@@ -198,75 +204,98 @@ async function _init() {
 onMounted(async () => {
   await _init()
 })
-
 </script>
 
 <template>
   <view class="container">
     <view class="topBG">
-      <!-- 在 src/pages/index/index.vue 的 template 中 -->
-      <!-- 将整个 user 卡片用 navigator 包裹起来 -->
+      <!-- 用户信息卡片 -->
       <navigator url="/pages-sub/profile/index" class="user-navigator">
         <view class="user">
           <view class="avator">
-            <image :src="userStore.userInfo.avatar || ''" mode="scaleToFill"></image>
+            <image
+              :src="userStore.userInfo.avatar || '/static/logo.png'"
+              mode="scaleToFill"
+            ></image>
+            <view class="avator-badge"></view>
           </view>
           <view class="info">
             <view class="username">姓名：{{ userStore.userInfo.nickname || '点击设置昵称' }}</view>
             <view class="phone">电话：{{ userStore.userInfo.phone || '点击设置电话' }}</view>
           </view>
-          <!-- 添加一个向右的箭头，提示用户可以点击 -->
-          <view class="arrow"> > </view>
+          <view class="arrow">></view>
         </view>
       </navigator>
     </view>
 
+    <!-- 系统公告 -->
     <view class="advertise">
-      <view>系统公告</view>
+      <view class="advertise-title">
+        <text class="title-icon">📢</text>
+        <text class="title-text">系统公告</text>
+      </view>
       <swiper class="sys-swiper" autoplay :interval="3000" :duration="1000" vertical circular>
         <swiper-item v-for="(item, index) in advertiseList" :key="index" class="sys-swiper-item">
-          <view class="title">{{ item.title }}</view>
-          <view class="time">{{ item.time }}</view>
+          <text class="title">{{ item.title }}</text>
+          <text class="time">{{ item.time }}</text>
         </swiper-item>
       </swiper>
     </view>
 
     <view class="box">
+      <!-- 功能网格 -->
       <view class="gridBoxes">
-        <view class="gridBoxesItem" v-for="(item, index)
-          in gridBoxesList" :key="index">
-          <indexGridBoxesVue :icontext="item.icontext" :text="item.text" :textSize="item.textSize"
-            :fontSize="item.fontSize" :fontBGColor="item.fontBGColor" :fontColor="item.fontColor"></indexGridBoxesVue>
-        </view>
-
-        <!-- 后面做点击事件可以考虑增加一个自定义属性 -->
-        <!-- 或者用一个navigator包含他们 -->
-      </view>
-
-      <view class="score">
-        <view class="score-top grayBox">
-          <text>最近随访日期：暂无</text>
-        </view>
-        <view class="scoreCardList">
-          <view v-for="(item, index) in scoreListWithScore" :key="index" class="grayBox">
-            <navigator :url="item.url">
-              <indexScoreListVue :mainTitle="item.mainTitle" :subTitle="item.subTitle" :icontext="item.icontext"
-                :iconColor="item.iconColor" :score="item.score"></indexScoreListVue>
-            </navigator>
-          </view>
-        </view>
-        <view class="score-bottom">
-          <navigator url="/pages-sub/historyScore/index">
-            <text>>>>></text>
-            <text>查看历史记录</text>
+        <view class="gridBoxesItem" v-for="(item, index) in gridBoxesList" :key="index">
+          <navigator :url="item.url" hover-class="navigator-hover">
+            <indexGridBoxesVue
+              :icontext="item.icontext"
+              :text="item.text"
+              :textSize="item.textSize"
+              :fontSize="item.fontSize"
+              :fontBGColor="item.fontBGColor"
+              :fontColor="item.fontColor"
+            ></indexGridBoxesVue>
           </navigator>
         </view>
       </view>
 
+      <!-- 评分卡片 -->
+      <view class="score">
+        <view class="score-section-header">
+          <text class="section-title">健康评估</text>
+          <navigator url="/pages-sub/historyScore/index" class="view-more">查看历史记录</navigator>
+        </view>
+        <view class="score-top grayBox">
+          <text>最近随访日期：暂无</text>
+        </view>
+        <view class="scoreCardList">
+          <view v-for="(item, index) in scoreListWithScore" :key="index" class="grayBox score-card">
+            <navigator :url="item.url" class="score-card-link">
+              <indexScoreListVue
+                :mainTitle="item.mainTitle"
+                :subTitle="item.subTitle"
+                :icontext="item.icontext"
+                :iconColor="item.iconColor"
+                :score="item.score"
+              ></indexScoreListVue>
+            </navigator>
+          </view>
+        </view>
+      </view>
+
+      <!-- 科普文章 -->
       <view class="science">
+        <view class="science-header">
+          <text class="section-title">健康科普</text>
+          <navigator url="/pages-sub/scienceArticle/index" class="view-more">更多</navigator>
+        </view>
         <view class="scienceItem" v-for="item in scienceCardList" :key="item.id">
-          <indexScienceCardVue :title="item.title" :time="item.time" :src="item.src" :href="item.href">
-          </indexScienceCardVue>
+          <indexScienceCardVue
+            :title="item.title"
+            :time="item.time"
+            :src="item.src"
+            :href="item.href"
+          ></indexScienceCardVue>
         </view>
       </view>
     </view>
@@ -274,41 +303,79 @@ onMounted(async () => {
 </template>
 
 <style scoped lang="scss">
+$primary-color: #33d596;
+$text-primary: #333;
+$text-secondary: #666;
+$text-tertiary: #999;
+$border-color: #e6e6e6;
+$bg-color: #f8f8f8;
+$card-bg: #ffffff;
+$shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.08);
+$border-radius: 16rpx;
+
 .topBG {
-  background: linear-gradient(#33d596 90%, white 90%);
+  background: linear-gradient($primary-color 90%, white 90%);
   box-sizing: border-box;
   padding: 20rpx;
   padding-bottom: 0;
-  min-height: 200rpx;
+  min-height: 240rpx;
   width: 100%;
 }
 
 .user {
   display: flex;
   align-items: center;
-  background-color: white;
+  background-color: $card-bg;
   box-sizing: border-box;
-  border-radius: 10rpx;
+  border-radius: $border-radius;
   padding: 30rpx;
-  box-shadow: 0 6rpx 6rpx #9f9f9f;
-  position: relative; // 为了让箭头定位
+  box-shadow: $shadow;
+  position: relative;
+  transition: all 0.3s ease;
+
+  &:active {
+    transform: translateY(2rpx);
+    box-shadow: 0 1rpx 5rpx rgba(0, 0, 0, 0.05);
+  }
 
   .avator {
     width: 150rpx;
     height: 150rpx;
+    border-radius: 50%;
     overflow: hidden;
+    border: 4rpx solid rgba(255, 255, 255, 0.8);
+    position: relative;
+    box-shadow: 0 0 20rpx rgba(0, 0, 0, 0.1);
 
     image {
       width: 100%;
       height: 100%;
     }
+
+    .avator-badge {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 40rpx;
+      height: 40rpx;
+      border-radius: 50%;
+      background-color: $primary-color;
+      border: 6rpx solid white;
+    }
   }
 
   .info {
-    margin-left: 20rpx;
+    margin-left: 30rpx;
+    flex: 1;
     font-size: $uni-font-size-base;
-    color: #8b8b8b;
-    height: fit-content;
+    color: $text-secondary;
+  }
+
+  .username {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8rpx;
   }
 
   .arrow {
@@ -318,41 +385,64 @@ onMounted(async () => {
     transform: translateY(-50%);
     color: #ccc;
     font-size: 40rpx;
+    transition: all 0.3s ease;
+  }
+
+  &:active .arrow {
+    right: 25rpx;
   }
 }
 
 .advertise {
   box-sizing: border-box;
-  display: flex;
-  padding: 0 30rpx;
-  height: 60rpx;
-  line-height: 60rpx;
+  background-color: $card-bg;
+  margin: 20rpx;
+  border-radius: $border-radius;
+  padding: 20rpx 30rpx;
+  box-shadow: $shadow;
 
-  >view {
-    flex-shrink: 0;
-    flex-grow: 0;
-    font-size: $uni-font-size-base;
-    color: red;
+  .advertise-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10rpx;
+
+    .title-icon {
+      margin-right: 15rpx;
+    }
+
+    .title-text {
+      font-size: $uni-font-size-base;
+      color: #e64340;
+      font-weight: 600;
+    }
   }
 
   .sys-swiper {
-    flex-shrink: 0;
-    flex-grow: 0;
-    flex: 1;
-    height: 100%;
+    height: 60rpx;
+    line-height: 60rpx;
     margin-left: 20rpx;
 
     .sys-swiper-item {
       display: flex;
       flex-wrap: nowrap;
-      font-size: $uni-font-size-sm;
+      align-items: center;
 
+      // 滚动文本字体放大
       .title {
-        width: 70%;
+        flex: 1;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
         word-break: break-all;
+        color: $text-secondary;
+        font-size: $uni-font-size-base;
+      }
+
+      .time {
+        font-size: $uni-font-size-sm;
+        color: $text-tertiary;
+        margin-left: 20rpx;
+        flex-shrink: 0;
       }
     }
   }
@@ -360,73 +450,147 @@ onMounted(async () => {
 
 .box {
   margin: 20rpx;
-  background-color: #f2f2f2;
-  padding: 10rpx 20rpx;
+  background-color: $bg-color;
+  padding: 20rpx;
+  border-radius: $border-radius;
+  box-shadow: $shadow;
+
+  // 通用的区块标题样式
+  .section-title {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 20rpx;
+    display: inline-block;
+  }
+
+  // 查看更多链接样式
+  .view-more {
+    font-size: $uni-font-size-sm;
+    color: $primary-color;
+  }
 
   .gridBoxes {
     display: flex;
     justify-content: space-between;
     box-sizing: border-box;
-    padding: 0 30rpx;
-    // padding: 10rpx 40rpx;
+    background-color: $card-bg;
+    border-radius: $border-radius;
+    padding: 45rpx;
+    margin-bottom: 50rpx;
+    box-shadow: $shadow;
 
     .gridBoxesItem {
       width: 23%;
+      transition: transform 0.2s ease;
+    }
+    .gridBoxesItem:active {
+      transform: scale(0.95);
     }
   }
 
+  .navigator-hover {
+    opacity: 0.7;
+  }
+
   .score {
-    background-color: white;
+    background-color: $card-bg;
     box-sizing: border-box;
-    border: 1px solid transparent;
-    padding: 0 30rpx;
+    border-radius: $border-radius;
+    padding: 30rpx;
+    margin-bottom: 20rpx;
+    box-shadow: $shadow;
+
+    .score-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20rpx;
+    }
 
     .score-top {
       text-align: center;
       font-size: $uni-font-size-base;
-      color: #828283;
-      margin: 10rpx 0;
-      padding: 16rpx 0;
+      color: $text-tertiary;
+      margin-bottom: 20rpx;
+      padding: 20rpx 0;
+      background-color: #f7f7f7;
+      border-radius: 10rpx;
     }
 
     .scoreCardList {
       width: 100%;
       display: flex;
       justify-content: space-between;
-
-      >view {
-        width: 45%;
-      }
+      gap: 20rpx;
     }
 
-    .score-bottom {
-      margin: 30rpx;
-      margin-bottom: 10rpx;
-      font-size: $uni-font-size-base;
-      font-weight: 700;
-      text-align: center;
-      color: #33d596;
+    .score-card {
+      width: 48%;
+      transition: all 0.3s ease;
+      border-radius: 10rpx;
+      overflow: hidden;
+    }
+
+    .score-card:active {
+      transform: translateY(2rpx);
     }
   }
 
   .science {
     box-sizing: border-box;
-    margin-top: 30rpx;
-    border-radius: 20rpx;
-    background-color: white;
-    border: 1px solid transparent;
+    background-color: $card-bg;
+    border-radius: $border-radius;
+    padding: 30rpx;
+    box-shadow: $shadow;
+
+    .science-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20rpx;
+    }
+
+    .scienceItem {
+      transition: all 0.3s ease;
+    }
+
+    .scienceItem:active {
+      background-color: #f7f7f7;
+    }
 
     .scienceItem:after {
       content: '';
       display: block;
-      border-bottom: 4rpx solid #e6e6e6;
-      width: 90%;
-      margin: 10rpx auto;
+      border-bottom: 2rpx solid $border-color;
+      width: 100%;
+      margin: 20rpx auto 0;
     }
 
     .scienceItem:last-child::after {
       display: none;
     }
   }
+}
+
+// 统一的灰色背景框样式
+.grayBox {
+  background-color: #f7f7f7;
+}
+
+// 动画效果
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.container {
+  animation: fadeIn 0.5s ease-out;
 }
 </style>

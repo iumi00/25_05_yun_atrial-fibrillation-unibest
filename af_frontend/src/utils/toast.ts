@@ -73,6 +73,6 @@ export const toast = {
 
   // (可选，但推荐) 添加一个隐藏 loading 的方法
   hideLoading() {
-    uni.hideLoading();
-  }
+    uni.hideLoading()
+  },
 }

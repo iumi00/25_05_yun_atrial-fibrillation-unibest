@@ -38,20 +38,20 @@ async function onChooseAvatar(e: any) {
       toast.success('上传成功！')
       // 保存返回的永久 URL
       permanentAvatarUrl.value = result.url
-      console.log('✅ 头像上传成功，永久 URL:', permanentAvatarUrl.value);
+      console.log('✅ 头像上传成功，永久 URL:', permanentAvatarUrl.value)
     }
   } catch (error) {
     toast.error('头像上传失败')
-    console.error(error);
+    console.error(error)
   } finally {
     // 【新增】无论成功或失败，都隐藏 loading
-    toast.hideLoading(); 
+    toast.hideLoading()
   }
 }
 
 // 3. 【新增】处理昵称输入框失去焦点事件（微信昵称填充后会触发）
 function onNicknameBlur(e: any) {
-    nickname.value = e.detail.value
+  nickname.value = e.detail.value
 }
 
 // 【新增】处理手机号授权事件的函数
@@ -70,7 +70,7 @@ async function onGetPhoneNumber(e: any) {
 
     // 【修改】在这里添加类型断言
     // 我们告诉 TypeScript，我们期望 res.data 是一个包含 phone 属性的对象
-    const responseData = res.data as { phone: string };
+    const responseData = res.data as { phone: string }
 
     if (responseData && responseData.phone) {
       toast.success('手机号获取成功！')
@@ -94,13 +94,13 @@ async function handleSave() {
     return
   }
 
-// 在真实项目中，这里应该先调用上传图片的接口
+  // 在真实项目中，这里应该先调用上传图片的接口
   // const permanentAvatarUrl = await uploadFile(avatarUrl.value)
 
   isLoading.value = true
   try {
     // 调用 API 将新数据发送到后端
-     await _api_updateProfile({
+    await _api_updateProfile({
       nickname: nickname.value,
       phone: phone.value,
       avatar: permanentAvatarUrl.value, // 使用永久 URL
@@ -115,12 +115,11 @@ async function handleSave() {
     })
 
     toast.success('保存成功')
-    
+
     // 延时后返回上一页
     setTimeout(() => {
       uni.navigateBack()
     }, 1500)
-
   } catch (error) {
     console.error('保存失败', error)
     toast.error('保存失败，请重试')
@@ -131,7 +130,7 @@ async function handleSave() {
 </script>
 
 <template>
-   <view class="profile-container">
+  <view class="profile-container">
     <!-- 1. 头像选择 -->
     <button class="avatar-wrapper" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
       <image class="avatar-img" :src="avatarUrl"></image>
@@ -150,20 +149,17 @@ async function handleSave() {
         @blur="onNicknameBlur"
       />
     </view>
-    
+
     <!-- 【修改】将手机号输入框恢复为可编辑状态 -->
     <view class="form-item">
       <text class="label">电话</text>
       <!-- 移除了 disabled 属性，并修改了 placeholder -->
       <input class="input" v-model="phone" type="number" placeholder="可手动输入或授权获取" />
     </view>
-    
-    <button
-      class="phone-button"
-      open-type="getPhoneNumber"
-      @getphonenumber="onGetPhoneNumber"
-    >
-      <text class="iconfont"></text> 获取微信绑定手机号
+
+    <button class="phone-button" open-type="getPhoneNumber" @getphonenumber="onGetPhoneNumber">
+      <text class="iconfont"></text>
+      获取微信绑定手机号
     </button>
 
     <!-- 4. 保存按钮 (保持不变) -->
@@ -181,7 +177,7 @@ async function handleSave() {
   margin: 30rpx auto;
   overflow: hidden;
   border: 4rpx solid #fff;
-  box-shadow: 0 0 10rpx rgba(0,0,0,0.1);
+  box-shadow: 0 0 10rpx rgba(0, 0, 0, 0.1);
   &::after {
     border: none;
   }

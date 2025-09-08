@@ -99,10 +99,10 @@ export const useUserStore = defineStore(
         // 注意：我们的后端接口设计得很好，一次性返回了所有需要的数据
         if (loginRes.data && loginRes.data.token) {
           // 从后端返回的数据中提取 userInfo 和 token
-          const { userInfo, token } = loginRes.data;
+          const { userInfo, token } = loginRes.data
 
           // 调用本 store 内的 setUserInfo 方法来更新状态
-          setUserInfo({ ...userInfo, token });
+          setUserInfo({ ...userInfo, token })
           console.log('✅ [步骤3] 用户信息和 Token 已在 Pinia Store 中设置')
 
           return loginRes // 返回完整的后端响应

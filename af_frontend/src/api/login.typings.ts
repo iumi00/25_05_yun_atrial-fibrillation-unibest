@@ -5,7 +5,7 @@ export type IUserInfoVo = {
   id: number
   username?: string // 我们实际上没用这个字段了，可以设为可选
   nickname?: string // 新增 nickname，设为可选
-  phone?: string    // 新增 phone，设为可选
+  phone?: string // 新增 phone，设为可选
   avatar: string
   token: string
 }

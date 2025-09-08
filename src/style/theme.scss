@@ -1,0 +1,8 @@
+@use 'sass:math';
+
+:root,
+page {
+  @for $i from 1 through 288 {
+    --px-#{$i}: #{math.div($i, 16)}rem;
+  }
+}

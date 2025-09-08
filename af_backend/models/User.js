@@ -5,7 +5,15 @@
  * 这与我们在 MySQL 中创建的 'users' 表结构是对应的。
  */
 class User {
-  constructor(id, openid, session_key, nickname, avatar_url, created_at, updated_at) {
+  constructor(
+    id,
+    openid,
+    session_key,
+    nickname,
+    avatar_url,
+    created_at,
+    updated_at,
+  ) {
     this.id = id;
     this.openid = openid;
     this.session_key = session_key;
