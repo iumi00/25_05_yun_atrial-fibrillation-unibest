@@ -27,20 +27,20 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "static/icon/shouye1.png",
-        "selectedIconPath": "static/icon/shouye1-copy.png"
+        "iconPath": "static/icon/shouye1-copy.png",
+        "selectedIconPath": "static/icon/shouye1.png"
       },
       {
         "pagePath": "pages/measure/index",
         "text": "测量",
-        "iconPath": "static/icon/zhiyejiankang.png",
-        "selectedIconPath": "static/icon/zhiyejiankang-copy-copy.png"
+        "iconPath": "static/icon/zhiyejiankang-copy-copy.png",
+        "selectedIconPath": "static/icon/zhiyejiankang.png"
       },
       {
         "pagePath": "pages/Chat/index",
         "text": "智能诊断",
-        "iconPath": "static/icon/shouye1.png",
-        "selectedIconPath": "static/icon/shouye1-copy.png"
+        "iconPath": "static/icon/shouye1-copy.png",
+        "selectedIconPath": "static/icon/shouye1.png"
       }
     ]
   },

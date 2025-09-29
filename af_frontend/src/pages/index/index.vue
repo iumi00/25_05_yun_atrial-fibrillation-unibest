@@ -416,6 +416,9 @@ onMounted(async () => {
     background-color: white;
     border: 1px solid transparent;
 
+    .scienceItem{
+      cursor: pointer;
+    }
     .scienceItem:after {
       content: '';
       display: block;

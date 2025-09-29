@@ -40,13 +40,14 @@ export default {
   },
   methods: {
     navigateHandler(href) {
-      uni.setClipboardData({
-        data: href,
-      })
-      uni.showModal({
-        content: '已自动复制网址，请在手机浏览器里粘贴该网址',
-        showCancel: false,
-      })
+      // uni.setClipboardData({
+      //   data: href,
+      // })
+      // uni.showModal({
+      //   content: '已自动复制网址，请在手机浏览器里粘贴该网址',
+      //   showCancel: false,
+      // })
+      window.location.href = href
     },
   },
 }
