@@ -37,64 +37,53 @@ const currentMeasurementId = ref<number | null>(null)
 
 // 保存回调函数引用
 let accelerometerCallback: ((res: any) => void) | null = null
-// function startMeasurement() {
-//   if (isMeasuring.value) return
 
-//   uni.showLoading({ title: '测量中...', mask: true, duration: 100000 })
-//   isMeasuring.value = true
-//   measurementData.value = []
+// 检测平台并决定使用真实传感器还是模拟数据
+function getPlatformInfo() {
+  const systemInfo = uni.getSystemInfoSync()
+  console.log('平台信息:', systemInfo)
+  
+  // 检查是否为微信小程序
+  // #ifdef MP-WEIXIN
+  return { platform: 'wechat', canUseAccelerometer: false }
+  // #endif
+  
+  // #ifdef APP-PLUS
+  return { platform: 'app', canUseAccelerometer: true }
+  // #endif
+  
+  // #ifdef H5
+  return { platform: 'h5', canUseAccelerometer: false }
+  // #endif
+  
+  return { platform: 'unknown', canUseAccelerometer: false }
+}
 
-//   uni.startAccelerometer({
-//     interval: 'game',
-//     success() {
-//       console.log('Accelerometer started')
-//     },
-//   })
+// 模拟加速度计数据
+function generateMockAccelerometerData(): IMeasurementData {
+  // 生成模拟的房颤数据模式
+  const baseTime = Date.now()
+  const timeVariation = Math.random() * 100 // 时间变化
+  
+  // 模拟房颤的不规律心跳模式
+  const heartRate = 60 + Math.random() * 40 // 60-100 BPM
+  const irregularity = Math.sin(baseTime / 1000 * heartRate / 60 * 2 * Math.PI) * 0.5
+  
+  return {
+    timestamp: (baseTime + timeVariation).toString(),
+    x: 0.1 + irregularity + (Math.random() - 0.5) * 0.2,
+    y: 0.2 + irregularity * 0.8 + (Math.random() - 0.5) * 0.15,
+    z: 9.8 + irregularity * 0.3 + (Math.random() - 0.5) * 0.1, // 重力加速度
+  }
+}
 
-//   uni.onAccelerometerChange((res) => {
-//     /*measurementData.value.push({
-//       x: res.x,
-//       y: res.y,
-//       z: res.z,
-//       timestamp: dayjs().valueOf().toString(),
-//     })*/
-//     measurementData.value = [
-//       ...measurementData.value, // 保留历史数据
-//       {
-//         x: res.x,
-//         y: res.y,
-//         z: res.z,
-//         timestamp: dayjs().valueOf().toString(),
-//       },
-//     ]
-
-//     updateChart()
-//   })
-//   // 设置测量时间
-//   measurementInterval = setTimeout(
-//     () => {
-//       stopMeasurement()
-//       uni.hideLoading()
-//     },
-//     measureTime.value * 1000 + 500,
-//   )
-// }
-
-// function stopMeasurement() {
-//   uni.offAccelerometerChange((res) => {
-//     console.log('Accelerometer stopped')
-//   })
-//   uni.stopAccelerometer()
-//   if (measurementInterval) {
-//     clearTimeout(measurementInterval)
-//     measurementInterval = null
-//   }
-//   isMeasuring.value = false
-// }
 async function startMeasurement() {
   if (isMeasuring.value) return
 
   try {
+    const platformInfo = getPlatformInfo()
+    console.log('平台检测结果:', platformInfo)
+
     // 调用后端API开始测量
     const response = await _api_startMeasurement(
       {
@@ -108,32 +97,19 @@ async function startMeasurement() {
       currentMeasurementId.value = response.data.measurementId
       console.log('测量开始，ID:', currentMeasurementId.value)
       
-      uni.showLoading({ title: '测量中...', mask: false, duration: 100000 })
+      uni.showLoading({ title: '测量中...', mask: false, duration: measureTime.value * 1000 })
       isMeasuring.value = true
       measurementData.value = []
+      
+      //微信小程序从 2021 年起就禁止 startAccelerometer(加速度计测量)，会直返fail。
 
-      uni.startAccelerometer({
-        interval: 'game',
-        success() {
-          console.log('Accelerometer started')
-        },
-      })
-
-      // 定义回调函数并保存引用
-      accelerometerCallback = (res: any) => {
-        const newData = {
-          x: res.x,
-          y: res.y,
-          z: res.z,
-          timestamp: dayjs().valueOf().toString(),
-        }
-        
-        measurementData.value = [...measurementData.value, newData]
-        updateChart()
+      if (platformInfo.canUseAccelerometer) {
+        // 使用真实传感器
+        startRealAccelerometer()
+      } else {
+        // 使用模拟数据
+        startMockAccelerometer()
       }
-
-      // 监听加速度计变化
-      uni.onAccelerometerChange(accelerometerCallback)
 
       // 设置测量时间
       measurementInterval = setTimeout(
@@ -141,7 +117,8 @@ async function startMeasurement() {
           stopMeasurement()
           uni.hideLoading()
         },
-        measureTime.value * 1000 + 500,
+        measureTime.value * 1000,
+        
       )
     } else {
       throw new Error(response.message || '开始测量失败')
@@ -153,6 +130,57 @@ async function startMeasurement() {
       icon: 'error'
     })
   }
+}
+
+// 真实传感器测量
+function startRealAccelerometer() {
+  uni.startAccelerometer({
+    interval: 'game',
+    success() {
+      console.log('真实传感器启动成功')
+    },
+    fail: (err) => {
+      console.error('真实传感器启动失败:', err)
+      // 降级到模拟数据
+      startMockAccelerometer()
+    }
+  })
+
+  // 定义回调函数并保存引用
+  accelerometerCallback = (res: any) => {
+    const newData = {
+      x: res.x,
+      y: res.y,
+      z: res.z,
+      timestamp: dayjs().valueOf().toString(),
+    }
+    measurementData.value = [...measurementData.value, newData]
+    updateChart()
+  }
+
+  // 监听加速度计变化
+  uni.onAccelerometerChange(accelerometerCallback)
+}
+
+// 模拟传感器测量
+function startMockAccelerometer() {
+  console.log('使用模拟传感器数据')
+  
+  // 每100ms生成一次模拟数据
+  const mockInterval = setInterval(() => {
+    if (!isMeasuring.value) {
+      clearInterval(mockInterval)
+      return
+    }
+    
+    const mockData = generateMockAccelerometerData()
+    // console.log('模拟传感器数据:', mockData)
+    measurementData.value = [...measurementData.value, mockData]
+    updateChart()
+  }, 100)
+  
+  // 保存interval引用以便清理
+  measurementInterval = mockInterval
 }
 
 async function stopMeasurement() {
@@ -173,6 +201,7 @@ async function stopMeasurement() {
     isMeasuring.value = false
 
     // 如果有测量ID和数据，上传到后端
+    console.log(currentMeasurementId,measurementData.value.length)
     if (currentMeasurementId.value && measurementData.value.length > 0) {
       console.log('上传测量数据，数据点数量:', measurementData.value.length)
       
@@ -213,69 +242,6 @@ async function stopMeasurement() {
   }
 }
 
-// function exportData() {
-//   // 检查是否有数据可以导出
-//   if (measurementData.value.length === 0) {
-//     uni.showToast({
-//       title: '没有数据可以导出',
-//       icon: 'none',
-//     })
-//     return
-//   }
-
-//   // 将数据转换为CSV内容
-//   const csvContent = measurementData.value
-//     .map((data) => `${data.timestamp},${data.x},${data.y},${data.z}`)
-//     .join('\n')
-
-//   // 使用 uni.getFileSystemManager 进行文件操作
-//   const fs = uni.getFileSystemManager()
-//   // 生成文件名，包含当前时间以避免重复
-//   const filename = `accelerometer_data_${getFormattedTimestamp()}.csv`
-
-//   try {
-//     // 创建临时文件路径
-//     const tempFilePath = `${uni.env.USER_DATA_PATH}/${filename}`
-//     // 将CSV内容写入临时文件
-//     fs.writeFileSync(tempFilePath, csvContent)
-
-//     // 使用uni.saveFile将临时文件保存为永久文件
-//     uni.saveFile({
-//       tempFilePath,
-//       success: (res) => {
-//         uni.showToast({
-//           title: '数据导出成功',
-//           icon: 'success',
-//         })
-//         console.log('文件保存路径:', res.savedFilePath)
-//         // 自动打开保存的文件
-//         uni.openDocument({
-//           filePath: res.savedFilePath,
-//           fileType: 'csv',
-//           success: () => {
-//             console.log('文件打开成功')
-//           },
-//           fail: (err) => {
-//             console.error('文件打开失败:', err)
-//           },
-//         })
-//       },
-//       fail: (err) => {
-//         uni.showToast({
-//           title: '数据导出失败',
-//           icon: 'none',
-//         })
-//         console.error('文件保存失败:', err)
-//       },
-//     })
-//   } catch (error) {
-//     uni.showToast({
-//       title: '文件写入失败',
-//       icon: 'none',
-//     })
-//     console.error('文件写入失败:', error)
-//   }
-// }
 function exportData() {
   // 检查是否有数据可以导出
   if (measurementData.value.length === 0) {
@@ -653,7 +619,7 @@ const testFn = () => {
       <view class="w-full box-border p-4">
         <cus-chart :option="chartOption"></cus-chart>
       </view>
-      <view>{{ measurementData.length }}</view>
+      <view>{{ measurementData.length/10 }}</view>
     </view>
   </view>
 </template>
