@@ -21,7 +21,7 @@
 <script setup lang="ts">
 import scoreCircleVue from '@/components/scoreCircle/scoreCircle.vue'
 import scoreAdviceVue from '@/components/scoreAdvice/scoreAdvice.vue'
-import { _api_getMyQuestionnaireDetail } from '@/service'
+import { getQuestionnaireDetail } from '@/api/modules/questionnaire'
 
 const accessToken = uni.getStorageSync('accessToken')
 
@@ -46,7 +46,7 @@ onLoad((options) => {
 })
 
 async function getMyQuestionnaireDetail(options) {
-  const res = await _api_getMyQuestionnaireDetail({ id: answerId.value }, { accessToken })
+  const res = await getQuestionnaireDetail(answerId.value, { accessToken })
   console.log(res)
   score.value = res.data.score
   text.value = All_text.value[parseInt(options.type)]

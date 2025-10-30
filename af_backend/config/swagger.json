@@ -6,7 +6,7 @@
     "description": "基于 Node.js 的 MVC 架构后端 API 文档"
   },
   "servers": [
-    { "url": "http://localhost:3000/api" }
+    { "url": "http://localhost:8000/api" }
   ],
   "paths": {}
-} 
+}

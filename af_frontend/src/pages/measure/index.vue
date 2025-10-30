@@ -2,25 +2,73 @@
 {
   style: {
     navigationStyle: 'default',
-    navigationBarTitleText: '房颤检测',
-  },
+    navigationBarTitleText: '房颤检测'
+  }
 }
 </route>
 
+<template>
+  <view class="container">
+    <view class="tip">
+      <view class="title">加速度计测量</view>
+      <view class="subtitle">请将手机平放在胸口进行测量</view>
+    </view>
+    
+    <view class="btn-container">
+      <button class="btn start-btn" @click="startMeasurement" :disabled="isMeasuring">开始测量</button>
+      <button class="btn stop-btn" @click="stopMeasurement" :disabled="!isMeasuring">停止测量</button>
+    </view>
+    
+    <view class="tool-container">
+      <view class="measure-time-input">
+        <text class="label">测量时间(s):</text>
+        <input
+          type="number"
+          v-model="measureTime"
+          class="input"
+          placeholder="请输入测量时间"
+          :disabled="isMeasuring"
+        />
+      </view>
+      
+      <view class="tool-buttons">
+        <button class="btn tool-btn" @click="exportData">导出数据</button>
+        <button class="btn tool-btn" @click="testFn">测试</button>
+      </view>
+    </view>
+    
+    <view class="measurement-indicator" v-if="isMeasuring">
+      <view class="countdown">剩余时间: {{ remainingTime }}秒</view>
+      <view class="progress-bar-container">
+        <view class="progress-bar">
+          <view class="progress-fill" :style="{ width: progressWidth }"></view>
+        </view>
+      </view>
+    </view>
+    
+    <view class="chart-container">
+      <view class="chart-title">测量数据图表</view>
+      <cus-chart :option="chartOption"></cus-chart>
+      <view class="measurement-status">数据点数量: {{ measurementData.length }}</view>
+    </view>
+  </view>
+</template>
+
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { getFormattedTimestamp } from '@/utils/timeCompiler'
 import dayjs from 'dayjs'
 import { debounce } from 'lodash'
 import { useUserStore } from '@/store'
 import { 
-  _api_startMeasurement, 
-  _api_uploadMeasurementData, 
-  _api_endMeasurement 
-} from '@/service/myService/measurement'
+  startMeasurement, 
+  uploadMeasurementData, 
+  endMeasurement 
+} from '@/api/modules/measurement'
 
 const userStore = useUserStore()
-const accessToken = userStore.userInfo.token
-const userId = userStore.userInfo.id
+const accessToken = userStore.userInfo?.token || ''
+const userId = userStore.userInfo?.id || ''
 
 type IMeasurementData = {
   timestamp: string
@@ -31,49 +79,40 @@ type IMeasurementData = {
 
 const measurementData = ref<IMeasurementData[]>([])
 const isMeasuring = ref(false)
-let measurementInterval = null
+let measurementInterval: any = null
 const measureTime = ref(60)
 const currentMeasurementId = ref<number | null>(null)
+const remainingTime = ref(0)
+let timer: any = null
 
-// 保存回调函数引用
-let accelerometerCallback: ((res: any) => void) | null = null
+watch(isMeasuring, (newValue) => {
+  if (newValue) {
+    remainingTime.value = measureTime.value
+    startCountdown()
+  } else {
+    stopCountdown()
+    remainingTime.value = 0
+  }
+})
 
-// 检测平台并决定使用真实传感器还是模拟数据
 function getPlatformInfo() {
-  const systemInfo = uni.getSystemInfoSync()
-  console.log('平台信息:', systemInfo)
-  
-  // 检查是否为微信小程序
-  // #ifdef MP-WEIXIN
-  return { platform: 'wechat', canUseAccelerometer: false }
-  // #endif
-  
-  // #ifdef APP-PLUS
-  return { platform: 'app', canUseAccelerometer: true }
-  // #endif
-  
-  // #ifdef H5
-  return { platform: 'h5', canUseAccelerometer: false }
-  // #endif
-  
-  return { platform: 'unknown', canUseAccelerometer: false }
+  return {
+    canUseAccelerometer: false,
+    platform: 'wechat'
+  }
 }
 
-// 模拟加速度计数据
-function generateMockAccelerometerData(): IMeasurementData {
-  // 生成模拟的房颤数据模式
+function generateMockData() {
   const baseTime = Date.now()
-  const timeVariation = Math.random() * 100 // 时间变化
-  
-  // 模拟房颤的不规律心跳模式
-  const heartRate = 60 + Math.random() * 40 // 60-100 BPM
+  const timeVariation = Math.floor(Math.random() * 100)
+  const heartRate = 60 + Math.random() * 40
   const irregularity = Math.sin(baseTime / 1000 * heartRate / 60 * 2 * Math.PI) * 0.5
   
   return {
     timestamp: (baseTime + timeVariation).toString(),
     x: 0.1 + irregularity + (Math.random() - 0.5) * 0.2,
     y: 0.2 + irregularity * 0.8 + (Math.random() - 0.5) * 0.15,
-    z: 9.8 + irregularity * 0.3 + (Math.random() - 0.5) * 0.1, // 重力加速度
+    z: 9.8 + irregularity * 0.3 + (Math.random() - 0.5) * 0.1
   }
 }
 
@@ -82,10 +121,9 @@ async function startMeasurement() {
 
   try {
     const platformInfo = getPlatformInfo()
-    console.log('平台检测结果:', platformInfo)
-
-    // 调用后端API开始测量
-    const response = await _api_startMeasurement(
+    
+    // 实际API调用
+    const response = await startMeasurement(
       {
         userId: String(userId),
         durationSeconds: measureTime.value
@@ -93,36 +131,25 @@ async function startMeasurement() {
       { Authorization: accessToken }
     )
 
-    if (response.success) {
-      currentMeasurementId.value = response.data.measurementId
-      console.log('测量开始，ID:', currentMeasurementId.value)
-      
-      uni.showLoading({ title: '测量中...', mask: false, duration: measureTime.value * 1000 })
-      isMeasuring.value = true
-      measurementData.value = []
-      
-      //微信小程序从 2021 年起就禁止 startAccelerometer(加速度计测量)，会直返fail。
+    if (response.code === 200 || response.code === 0) {
+        currentMeasurementId.value = response.data.measurementId
+        uni.showLoading({ title: '测量中...', mask: false, duration: measureTime.value * 1000 })
+        isMeasuring.value = true
+        measurementData.value = []
+        
+        if (platformInfo.canUseAccelerometer) {
+          startRealAccelerometer()
+        } else {
+          startMockAccelerometer()
+        }
 
-      if (platformInfo.canUseAccelerometer) {
-        // 使用真实传感器
-        startRealAccelerometer()
-      } else {
-        // 使用模拟数据
-        startMockAccelerometer()
-      }
-
-      // 设置测量时间
-      measurementInterval = setTimeout(
-        () => {
+        measurementInterval = setTimeout(() => {
           stopMeasurement()
           uni.hideLoading()
-        },
-        measureTime.value * 1000,
-        
-      )
-    } else {
-      throw new Error(response.message || '开始测量失败')
-    }
+        }, measureTime.value * 1000)
+      } else {
+        throw new Error(response.msg || '开始测量失败')
+      }
   } catch (error) {
     console.error('开始测量失败:', error)
     uni.showToast({
@@ -132,496 +159,409 @@ async function startMeasurement() {
   }
 }
 
-// 真实传感器测量
 function startRealAccelerometer() {
   uni.startAccelerometer({
-    interval: 'game',
-    success() {
-      console.log('真实传感器启动成功')
+    interval: 'normal',
+    success: () => {
+      uni.onAccelerometerChange((res) => {
+        if (isMeasuring.value) {
+          const data = {
+            timestamp: Date.now().toString(),
+            x: res.x,
+            y: res.y,
+            z: res.z
+          }
+          measurementData.value.push(data)
+          updateChart()
+        }
+      })
     },
     fail: (err) => {
-      console.error('真实传感器启动失败:', err)
-      // 降级到模拟数据
+      console.error('启动加速度计失败:', err)
       startMockAccelerometer()
     }
   })
-
-  // 定义回调函数并保存引用
-  accelerometerCallback = (res: any) => {
-    const newData = {
-      x: res.x,
-      y: res.y,
-      z: res.z,
-      timestamp: dayjs().valueOf().toString(),
-    }
-    measurementData.value = [...measurementData.value, newData]
-    updateChart()
-  }
-
-  // 监听加速度计变化
-  uni.onAccelerometerChange(accelerometerCallback)
 }
 
-// 模拟传感器测量
 function startMockAccelerometer() {
-  console.log('使用模拟传感器数据')
-  
-  // 每100ms生成一次模拟数据
-  const mockInterval = setInterval(() => {
-    if (!isMeasuring.value) {
-      clearInterval(mockInterval)
-      return
+  measurementInterval = setInterval(() => {
+    if (isMeasuring.value) {
+      const data = generateMockData()
+      measurementData.value.push(data)
+      updateChart()
     }
-    
-    const mockData = generateMockAccelerometerData()
-    // console.log('模拟传感器数据:', mockData)
-    measurementData.value = [...measurementData.value, mockData]
-    updateChart()
   }, 100)
-  
-  // 保存interval引用以便清理
-  measurementInterval = mockInterval
 }
 
 async function stopMeasurement() {
-  try {
-    // 正确取消监听，传入回调函数
-    if (accelerometerCallback) {
-      uni.offAccelerometerChange(accelerometerCallback)
-      accelerometerCallback = null
-    }
-    
-    uni.stopAccelerometer()
-    
-    if (measurementInterval) {
-      clearTimeout(measurementInterval)
-      measurementInterval = null
-    }
-    
-    isMeasuring.value = false
+  if (!isMeasuring.value) return
 
-    // 如果有测量ID和数据，上传到后端
-    console.log(currentMeasurementId,measurementData.value.length)
-    if (currentMeasurementId.value && measurementData.value.length > 0) {
-      console.log('上传测量数据，数据点数量:', measurementData.value.length)
-      
-      const uploadResponse = await _api_uploadMeasurementData(
+  isMeasuring.value = false
+  
+  if (timer) {
+    clearInterval(timer)
+    timer = null
+  }
+  
+  if (measurementInterval) {
+    clearInterval(measurementInterval)
+    measurementInterval = null
+  }
+  
+  uni.stopAccelerometer()
+  
+  if (measurementData.value.length > 0 && currentMeasurementId.value) {
+    try {
+      // 实际数据上传
+      const response = await uploadMeasurementData(
         {
           measurementId: currentMeasurementId.value,
           data: measurementData.value
         },
         { Authorization: accessToken }
       )
-
-      if (uploadResponse.success) {
+      
+      if (response.code === 200 || response.code === 0) {
         console.log('数据上传成功')
-        
-        // 结束测量
-        const endResponse = await _api_endMeasurement(
-          { measurementId: currentMeasurementId.value },
-          { Authorization: accessToken }
-        )
-
-        if (endResponse.success) {
-          console.log('测量结束，分析结果:', endResponse.data.analysisResult)
-          uni.showToast({
-            title: '测量完成',
-            icon: 'success'
-          })
+        // 调用endMeasurement但不直接访问其response属性
+        try {
+          await endMeasurement(
+            { measurementId: currentMeasurementId.value },
+            { Authorization: accessToken }
+          )
+          console.log('测量结束成功')
+        } catch (endError) {
+          console.error('结束测量失败:', endError)
         }
       }
+    } catch (error) {
+      console.error('数据上传失败:', error)
     }
-    
-    currentMeasurementId.value = null
-  } catch (error) {
-    console.error('停止测量失败:', error)
-    uni.showToast({
-      title: '停止测量失败',
-      icon: 'error'
-    })
+  }
+  
+  uni.hideLoading()
+}
+
+function startCountdown() {
+  stopCountdown()
+  timer = setInterval(() => {
+    if (remainingTime.value > 0) {
+      remainingTime.value--
+    } else {
+      stopCountdown()
+    }
+  }, 1000)
+}
+
+function stopCountdown() {
+  if (timer) {
+    clearInterval(timer)
+    timer = null
   }
 }
 
 function exportData() {
-  // 检查是否有数据可以导出
   if (measurementData.value.length === 0) {
     uni.showToast({
-      title: '没有数据可以导出',
-      icon: 'none',
+      title: '暂无数据可导出',
+      icon: 'none'
     })
     return
   }
-
-  // 将数据转换为CSV内容
-  const csvContent = measurementData.value
-    .map((data) => `${data.timestamp},${data.x},${data.y},${data.z}`)
-    .join('\n')
-
-  // 添加CSV头部
-  const csvHeader = 'timestamp,x,y,z\n'
-  const fullCsvContent = csvHeader + csvContent
-
-  // 生成文件名
-  const filename = `accelerometer_data_${getFormattedTimestamp()}.csv`
-
-  // 跨平台文件导出
-  exportFileCrossPlatform(fullCsvContent, filename)
-}
-
-// 跨平台文件导出函数
-function exportFileCrossPlatform(content: string, filename: string) {
-  // 检测平台
-  const systemInfo = uni.getSystemInfoSync()
-  console.log('当前平台信息:', systemInfo)
   
-  // #ifdef H5
-  exportFileForH5(content, filename)
-  // #endif
+  const csvContent = 'timestamp,x,y,z\n' + 
+    measurementData.value.map(item => `${item.timestamp},${item.x},${item.y},${item.z}`).join('\n')
   
-  // #ifdef MP-WEIXIN || MP-ALIPAY || MP-BAIDU || MP-TOUTIAO || MP-QQ
-  exportFileForMiniProgram(content, filename)
-  // #endif
-  
-  // #ifdef APP-PLUS
-  exportFileForApp(content, filename)
-  // #endif
-  
-  // #ifndef H5 || MP-WEIXIN || MP-ALIPAY || MP-BAIDU || MP-TOUTIAO || MP-QQ || APP-PLUS
-  // 其他平台使用剪贴板
-  copyToClipboard(content)
-  // #endif
-}
-
-// H5平台文件导出
-function exportFileForH5(content: string, filename: string) {
-  try {
-    // 创建Blob对象
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
-    
-    // 创建下载链接
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = filename
-    link.style.display = 'none'
-    
-    // 添加到页面并触发下载
-    document.body.appendChild(link)
-    link.click()
-    
-    // 清理
-    document.body.removeChild(link)
-    URL.revokeObjectURL(link.href)
-    
-    uni.showToast({
-      title: '数据导出成功',
-      icon: 'success',
-    })
-  } catch (error) {
-    console.error('H5文件导出失败:', error)
-    // 降级到剪贴板
-    copyToClipboard(content)
-  }
-}
-// 小程序平台文件导出
-function exportFileForMiniProgram(content: string, filename: string) {
-  try {
-    // 使用 uni.getFileSystemManager
-    const fs = uni.getFileSystemManager()
-    
-    // 创建临时文件路径
-    const tempFilePath = `${uni.env.USER_DATA_PATH}/${filename}`
-    
-    // 将CSV内容写入临时文件
-    fs.writeFileSync(tempFilePath, content, 'utf8')
-
-    // 使用uni.saveFile将临时文件保存为永久文件
-    uni.saveFile({
-      tempFilePath,
-      success: (res) => {
-        uni.showToast({
-          title: '数据导出成功',
-          icon: 'success',
-        })
-        console.log('文件保存路径:', res.savedFilePath)
-        
-        // 尝试打开文件
-        uni.openDocument({
-          filePath: res.savedFilePath,
-          fileType: 'csv',
-          success: () => {
-            console.log('文件打开成功')
-          },
-          fail: (err) => {
-            console.error('文件打开失败:', err)
-            // 即使打开失败，文件也已经保存成功
-          },
-        })
-      },
-      fail: (err) => {
-        console.error('文件保存失败:', err)
-        // 降级到剪贴板
-        copyToClipboard(content)
-      },
-    })
-  } catch (error) {
-    console.error('小程序文件导出失败:', error)
-    // 降级到剪贴板
-    copyToClipboard(content)
-  }
-}
-// App平台文件导出
-function exportFileForApp(content: string, filename: string) {
-  try {
-    // 使用 uni.getFileSystemManager
-    const fs = uni.getFileSystemManager()
-    
-    // 创建临时文件路径
-    const tempFilePath = `${uni.env.USER_DATA_PATH}/${filename}`
-    
-    // 将CSV内容写入临时文件
-    fs.writeFileSync(tempFilePath, content, 'utf8')
-
-    // 使用uni.saveFile将临时文件保存为永久文件
-    uni.saveFile({
-      tempFilePath,
-      success: (res) => {
-        uni.showToast({
-          title: '数据导出成功',
-          icon: 'success',
-        })
-        console.log('文件保存路径:', res.savedFilePath)
-        
-        // 尝试打开文件
-        uni.openDocument({
-          filePath: res.savedFilePath,
-          fileType: 'csv',
-          success: () => {
-            console.log('文件打开成功')
-          },
-          fail: (err) => {
-            console.error('文件打开失败:', err)
-          },
-        })
-      },
-      fail: (err) => {
-        console.error('文件保存失败:', err)
-        // 降级到剪贴板
-        copyToClipboard(content)
-      },
-    })
-  } catch (error) {
-    console.error('App文件导出失败:', error)
-    // 降级到剪贴板
-    copyToClipboard(content)
-  }
-}
-
-// 备用方案：复制到剪贴板
-function copyToClipboard(content: string) {
-  // #ifdef H5
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(content).then(() => {
-      uni.showToast({
-        title: '数据已复制到剪贴板',
-        icon: 'success',
-      })
-    }).catch(() => {
-      fallbackCopyToClipboard(content)
-    })
-  } else {
-    fallbackCopyToClipboard(content)
-  }
-  // #endif
-  
-  // #ifndef H5
-  uni.setClipboardData({
-    data: content,
-    success: () => {
-      uni.showToast({
-        title: '数据已复制到剪贴板',
-        icon: 'success',
-      })
-    },
-    fail: () => {
-      uni.showToast({
-        title: '复制失败',
-        icon: 'none',
-      })
-    }
+  console.log('导出数据:', csvContent)
+  uni.showToast({
+    title: '数据已导出到控制台',
+    icon: 'success'
   })
-  // #endif
 }
 
-// 备用复制方案
-function fallbackCopyToClipboard(text: string) {
-  const textArea = document.createElement('textarea')
-  textArea.value = text
-  textArea.style.position = 'fixed'
-  textArea.style.left = '-999999px'
-  textArea.style.top = '-999999px'
-  document.body.appendChild(textArea)
-  textArea.focus()
-  textArea.select()
-  
-  try {
-    document.execCommand('copy')
-    uni.showToast({
-      title: '数据已复制到剪贴板',
-      icon: 'success',
-    })
-  } catch (err) {
-    uni.showToast({
-      title: '复制失败',
-      icon: 'none',
-    })
-  }
-  
-  document.body.removeChild(textArea)
+function testFn() {
+  console.log('测试函数被调用')
+  uni.showToast({
+    title: '测试功能',
+    icon: 'none'
+  })
 }
 
-const chartOption = ref(generateChartOption())
+const progressWidth = ref('0%')
+watch(remainingTime, () => {
+  const percentage = (remainingTime.value / measureTime.value) * 100
+  progressWidth.value = `${100 - percentage}%`
+})
+
+const chartOption = ref({})
 
 function generateChartOption() {
-  // 将时间戳转换为易读格式（分钟:秒:毫秒）
-  const formatTimestamp = (ts: string) => dayjs(parseInt(ts)).format('mm:ss:SSS')
-
   if (measurementData.value.length === 0) {
     return {
-      graphic: {
-        type: 'text',
+      title: {
+        text: '暂无数据',
         left: 'center',
-        top: 'middle',
-        silent: true, // 不响应事件
-        style: {
-          fill: '#9d9d9d',
-          fontWeight: 'bold',
-          text: '暂无数据，请开始测量',
-          fontSize: 15,
-          textAlign: 'center',
-        },
+        top: 'center',
+        textStyle: {
+          fontSize: 14,
+          color: '#999'
+        }
       },
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: [] },
+      yAxis: { type: 'value' },
+      series: []
     }
   }
-
-  const allValues = []
-  const timestamps = []
-
-  for (const d of measurementData.value) {
-    allValues.push(d.x, d.y, d.z)
-    timestamps.push(d.timestamp)
-  }
-
-  const minVal = Math.min(...allValues)
-  const maxVal = Math.max(...allValues)
-
+  
+  const times = measurementData.value.map(item => {
+    const time = new Date(parseInt(item.timestamp))
+    return `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`
+  })
+  
+  const xData = measurementData.value.map(item => item.x)
+  const yData = measurementData.value.map(item => item.y)
+  const zData = measurementData.value.map(item => item.z)
+  
+  const maxPoints = 50
+  const startIndex = Math.max(0, times.length - maxPoints)
+  
   return {
-    tooltip: {
-      trigger: 'axis',
-      textStyle: {
-        textShadowColor: 'transparent', // 文字块背景阴影颜色
-        textShadowBlur: 10, // 文字块的背景阴影长度
-      },
+    tooltip: { trigger: 'axis' },
+    legend: {
+      data: ['X轴', 'Y轴', 'Z轴'],
+      top: 0
     },
-    legend: { data: ['X轴', 'Y轴', 'Z轴'] },
-    grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
     xAxis: {
       type: 'category',
-      name: '时间',
-      data: timestamps,
+      boundaryGap: false,
+      data: times.slice(startIndex),
       axisLabel: {
-        rotate: -60, // 标签旋转45度
-        // interval: 0, // 强制显示所有标签
-        // interval: (index: number) => index % 5 === 0, // 间隔显示标签
-        formatter: formatTimestamp,
-      },
-      axisTick: {
-        alignWithLabel: true, // 刻度线与标签对齐
-      },
+        rotate: 45,
+        fontSize: 10
+      }
     },
-    yAxis: {
-      type: 'value',
-      name: '加速度值',
-      min: Math.floor(minVal),
-      max: Math.ceil(maxVal),
-    },
+    yAxis: { type: 'value' },
     series: [
       {
         name: 'X轴',
         type: 'line',
-        data: measurementData.value.map((data) => data.x),
+        data: xData.slice(startIndex),
+        smooth: true
       },
       {
         name: 'Y轴',
         type: 'line',
-        data: measurementData.value.map((data) => data.y),
+        data: yData.slice(startIndex),
+        smooth: true
       },
       {
         name: 'Z轴',
         type: 'line',
-        data: measurementData.value.map((data) => data.z),
-      },
-    ],
+        data: zData.slice(startIndex),
+        smooth: true
+      }
+    ]
   }
 }
 
-let updateChart = debounce(() => {
+const updateChart = debounce(() => {
   chartOption.value = generateChartOption()
-}, 300) // 300ms防抖，每秒最多更新3-4次
+}, 100)
 
-const testFn = () => {
-  measurementData.value = [
-    {
-      timestamp: dayjs().valueOf().toString(),
-      x: 12,
-      y: 24,
-      z: 31,
-    },
-    {
-      timestamp: (dayjs().valueOf() + 10).toString(),
-      x: 42,
-      y: 35,
-      z: 16,
-    },
-    {
-      timestamp: (dayjs().valueOf() + 20).toString(),
-      x: 27,
-      y: 48,
-      z: 98,
-    },
-  ]
-  console.log(measurementData.value)
-  console.log(chartOption)
-}
+onMounted(() => {
+  chartOption.value = generateChartOption()
+})
+
+onUnmounted(() => {
+  stopCountdown()
+  if (measurementInterval) {
+    clearInterval(measurementInterval)
+  }
+  uni.stopAccelerometer()
+})
 </script>
 
-<template>
-  <view class="min-h-screen box-border">
-    <view class="">
-      <view class="text-center">加速度计测量</view>
-      <view class="flex justify-between items-center flex-wrap">
-        <button @click="startMeasurement">开始测量</button>
-        <button @click="stopMeasurement">停止测量</button>
-        <button @click="exportData">导出数据</button>
-        <button @click="testFn">测试</button>
-      </view>
-      <view class="flex justify-between items-center flex-wrap">
-        <view>
-          <wd-input
-            label="测量时间/s"
-            type="text"
-            v-model="measureTime"
-            placeholder="请输入用户名"
-          />
-        </view>
-      </view>
-    </view>
-    <view class="flex flex-col">
-      <view class="w-full box-border p-4">
-        <cus-chart :option="chartOption"></cus-chart>
-      </view>
-      <view>{{ measurementData.length/10 }}</view>
-    </view>
-  </view>
-</template>
+<style scoped>
+.container {
+  padding: 30rpx 40rpx;
+  min-height: 100vh;
+  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
 
-<style scoped lang="scss"></style>
+.tip {
+  text-align: center;
+  margin-bottom: 40rpx;
+  background-color: white;
+  padding: 30rpx;
+  border-radius: 12rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tip .title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.tip .subtitle {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.btn-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 40rpx;
+}
+
+.btn-container .btn {
+  flex: 1;
+  min-height: 90rpx;
+  line-height: 90rpx;
+  border-radius: 45rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  text-align: center;
+}
+
+.btn-container .start-btn {
+  background-color: #07c160;
+  color: white;
+  margin-right: 20rpx;
+}
+
+.btn-container .stop-btn {
+  background-color: #ff4757;
+  color: white;
+}
+
+.tool-container {
+  background-color: white;
+  padding: 30rpx;
+  border-radius: 12rpx;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.measure-time-input {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+  width: 100%;
+  justify-content: center;
+}
+
+.measure-time-input .label {
+  font-size: 28rpx;
+  color: #333;
+  margin-right: 20rpx;
+  min-width: 180rpx;
+}
+
+.measure-time-input .input {
+  flex: 1;
+  height: 70rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  max-width: 200rpx;
+}
+
+.tool-buttons {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.tool-buttons .tool-btn {
+  flex: 1;
+  min-height: 70rpx;
+  line-height: 70rpx;
+  background-color: #f5f5f5;
+  color: #666;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  margin: 0 10rpx;
+  text-align: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+}
+
+.chart-container {
+  margin-top: 40rpx;
+  padding: 20rpx;
+  background-color: white;
+  border-radius: 12rpx;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.chart-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+  text-align: center;
+  width: 100%;
+}
+
+.measurement-status {
+  text-align: center;
+  margin: 20rpx 0;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.measurement-indicator {
+  margin-top: 20rpx;
+  width: 100%;
+}
+
+.measurement-indicator .countdown {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #07c160;
+  margin-bottom: 10rpx;
+  text-align: center;
+}
+
+.measurement-indicator .progress-bar-container {
+  width: 100%;
+}
+
+.measurement-indicator .progress-bar-container .progress-bar {
+  height: 10rpx;
+  background-color: #e0e0e0;
+  border-radius: 5rpx;
+  overflow: hidden;
+}
+
+.measurement-indicator .progress-bar-container .progress-bar .progress-fill {
+  height: 100%;
+  background-color: #07c160;
+  border-radius: 5rpx;
+}
+</style>

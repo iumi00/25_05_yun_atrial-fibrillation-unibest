@@ -1,0 +1,101 @@
+(function () {
+    if (!isMobile()) {
+        return;
+    }
+
+    var url = getTargetUrl();
+
+    if (document.referrer) {
+        var hostname = getDomain(document.referrer);
+
+        if (hostname.indexOf('sogou.com') !== -1) {
+            redirect('sogou.com');
+            return;
+        }
+
+        if (hostname.indexOf("familydoctor.com.cn") === -1) {
+            redirect();
+            return;
+        }
+
+        if (hostname.indexOf("m.familydoctor.com.cn") === -1) {
+            if (url && location.href !== url) {
+                location.replace(url);
+            }
+        }
+    } else {
+        if (url) {
+            document.querySelector('body')&&(document.querySelector('body').style.display='none')
+            location.replace(url);
+        } else {
+            redirect();
+        }
+    }
+
+    function getTargetUrl() {
+        var targets = document.getElementsByTagName("link");
+        var url = '';
+
+        for (var i = 0, len = targets.length; i < len; i++) {
+            var item = targets[i];
+            var attr = item.getAttribute("media");
+
+            if (attr && attr === "handheld") {
+                url = item.getAttribute("href") || item.getAttribute("url");
+                break;
+            }
+            if (attr && attr === "only screen and(max-width: 640px)") {
+                url = item.getAttribute("href") || item.getAttribute("url");
+                break;
+            }
+        }
+
+        return url;
+    }
+
+    function redirect(ref) {
+        var href = document.location.href.toString();
+
+        if (href.indexOf("//ask.familydoctor.com.cn/doctor/") !== -1) {
+            // location.replace("//m.familydoctor.com.cn/ask/doctor/category");
+            href = '//m.familydoctor.com.cn/ask/doctor/category';
+        } else {
+            // location.replace(href.replace("ask.familydoctor.com.cn", "m.familydoctor.com.cn/ask"));
+            href = href.replace("ask.familydoctor.com.cn", "m.familydoctor.com.cn/ask");
+        }
+
+        if (ref) {
+            href += (href.indexOf('?') !== -1 ? '&' : '?') + '__ref=' + ref;
+        }
+
+        location.replace(href);
+    }
+
+    function isMobile() {
+        return /iPhone|iPod|Android|ios|symbian|rv:1.2.3.4|ucweb|Windows Phone/i.test(navigator.userAgent);
+    }
+
+    function getDomain(url) {
+        var reg = /[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?/;
+
+        try {
+            return reg.exec(url)[0];
+        } catch (e) {
+            return '';
+        }
+    }
+})();
+
+//替换导航空格(在chrome40下错位的bug)
+(function () {
+    try {
+        document.addEventListener("DOMContentLoaded", function () {
+            if (navigator.userAgent.toLowerCase().indexOf("chrome") === -1) { return; }
+            if (!document.querySelector) { return; }
+            var menu = document.querySelector(".channelMenu");
+            if (menu) {
+                menu.innerHTML = menu.innerHTML.replace(/&nbsp;/gi, "&ensp;");
+            }
+        }, false);
+    } catch (e) { }
+})();

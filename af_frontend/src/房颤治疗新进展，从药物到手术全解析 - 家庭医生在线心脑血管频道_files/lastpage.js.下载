@@ -1,0 +1,679 @@
+document.charset = "gb2312";
+
+var CookieUtil = {
+	set: function (name, value, days) {
+		var d = new Date;
+		d.setTime(d.getTime() + 24*60*60*1000*days);
+		doc.cookie = name + "=" + value + ";path=/;expires=" + d.toGMTString();
+	},
+	get: function (sMainName, sSubName) {
+		var re = new RegExp((sSubName ? sMainName + "=(?:.*?&)*?" + sSubName + "=([^&;$]*)" : sMainName + "=([^;$]*)"), "i");
+		return re.test(unescape(document.cookie)) ? RegExp["$1"] : "";
+	}
+};
+
+if (!window.console) {
+	window.console = { log: function() {}, error: function(){} };
+}
+
+$(document).ready(function(){
+	wideScreenFlex();
+
+	//顶部弹出更多菜单
+	(function(){
+		var $wrap = $("#global-top-bar");
+		if(!$wrap.length){ return; }
+		var $more = $wrap.find("a.more");
+		var $cont = $wrap.find(".more-cont");
+		var $side = $("#global-top-bar .side-left");
+		var pos = $side.offset();
+		$cont.css({left: pos.left + $side.width() - 400});
+
+		$more.mouseenter(function(){
+			$cont.slideDown();
+			$more.addClass("more-on");
+			$("#top-login-box").hide();
+		}).mouseleave(function(){
+			$cont.hide();
+			$more.removeClass("more-on");
+		});
+
+		$cont.mouseenter(function(){
+			$(this).show();
+			$more.addClass("more-on");
+		}).mouseleave(function(){
+			$(this).hide();
+			$more.removeClass("more-on");
+		});
+		
+		$(window).on("resize", function () {
+			$side = $("#global-top-bar .side-left");
+			pos = $side.offset();
+			$cont.css({left: pos.left + $side.width() - 400});
+		});
+	})();
+
+	(function(){
+		var $info = $("#LoginInfo");
+		var userName = CookieUtil.get("dnt", "username");
+
+		if (userName) {
+			var buffer = '';
+
+			buffer += '<span id="loginName">'+ userName +'</span>';
+			buffer += '<a class="name" href="//passport.familydoctor.com.cn/" target="_blank">\u4e2a\u4eba\u4e2d\u5fc3</a>'; //个人中心
+			buffer += '[<span id="logoutInfo"><a href="//passport.familydoctor.com.cn/Account/LogOut?refback='+ encodeURIComponent(location.href) +'">\u9000\u51fa</a></span>]'; //退出
+			$info.html(buffer);
+		}
+	})();
+
+	//弹出顶部登录窗口
+	(function(){
+		var regUrl = '//passport.familydoctor.com.cn/register.aspx?refback=';
+		var backUrl = '';
+        var $loginBox = null;
+        var $loginWrap = $("#top-login-wrap");
+        var $loginTrigger = $("#top-login-trigger");
+        var html = '';
+
+		if (location.href) {
+			backUrl = encodeURIComponent(location.href);
+		} else {
+			backUrl = encodeURIComponent("//www.familydoctor.com.cn/");
+		}
+
+		regUrl = regUrl + backUrl
+		$("#top-reg-trigger").attr("href", regUrl);
+		$("body").append('<div id="top-login-box" class="top-login-box hide"></div>');
+		$loginBox = $("#top-login-box");
+
+        if(!$loginWrap.length) {
+            $("body").append('<div class="top-login-wrap hide" id="top-login-wrap"></div>');
+            $loginWrap = $("#top-login-wrap");
+        }
+
+		html += '<ul><li id="errmsg" class="l-title">\u4f7f\u7528\u901a\u884c\u8bc1\u8d26\u53f7\u767b\u5f55</li>'; //使用通行证账号登录
+		html += '<li><input type="text" class="input account" value="" placeholder="\u5e10\u53f7" /></li>'; //帐号
+		html += '<li><input type="password" class="input password" value="" placeholder="\u5bc6\u7801" /></li>'; //密码
+		html += '<li><a class="reg" href="'+ regUrl +'">\u6ce8\u518c</a>'; //注册
+		html += '<a class="forgot" href="//passport.familydoctor.com.cn/reg/login/forgetPassword.aspx">\u5fd8\u8bb0\u5bc6\u7801\uff1f</a>'; //忘记密码？
+		html += '<label><input type="checkbox" class="remember" />\u8bb0\u4f4f\u6211</label></li>'; //记住我
+		html += '<li><input type="button" value="\u767b\u5f55" class="btn"></li></ul>'; //登录
+		html += '<dl><dt>\u4f7f\u7528\u5408\u4f5c\u7f51\u7ad9\u5e10\u53f7\u767b\u5f55</dt>'; //使用合作网站帐号登录
+		html += '<dd><a class="qq" href="//passport.familydoctor.com.cn/ThirdLogin/qqlogin/LoginToQQ.aspx">\u0051\u0051\u767b\u5f55</a>'; //QQ登录
+		html += '<a class="weibo" href="//passport.familydoctor.com.cn/ThirdLogin/sinaweibo/logintosina.aspx">\u5fae\u535a\u767b\u5f55</a></dd></dl>'; //微博登录
+
+		$loginWrap.html(html);
+		var $submit = $loginWrap.find(".btn");
+		var $account = $loginWrap.find(".account");
+		var $password = $loginWrap.find(".password");
+		var $remember = $loginWrap.find(".remember");
+		
+		$loginTrigger.mouseenter(function(e){
+			e.stopPropagation();
+			var pos = $(this).offset();
+
+			$loginBox.css({top: pos.top + 37, left: pos.left, position: "absolute"}).toggle();
+
+			if($loginBox.html() == ""){
+				$loginWrap.appendTo($loginBox).show();
+			}
+		}).mouseleave(function(){
+			$loginBox.hide();
+		});
+
+		$loginBox.click(function(e){
+			e.stopPropagation();
+		}).mouseenter(function(){
+			$loginTrigger.off("mouseleave");
+			$(this).show();
+		}).mouseleave(function(){
+			$loginTrigger.mouseleave(function(){
+				$loginBox.hide();
+			});
+		});
+
+		$(document).on("click", function(e){
+			if(!$(e.target).is($loginBox)){
+				$loginBox.hide();
+			}
+		});
+
+		//$.placeHolder($loginWrap);
+
+		$submit.click(function(){
+			var account = $.trim($account.val());
+			var password = $.trim($password.val());
+			var remember = $remember.get(0).checked;
+
+			if(account === ""){
+				err("\u8bf7\u8f93\u5165\u7528\u6237\u540d."); //请输入用户名
+				$account.focus();
+				return false;
+			}
+
+			if(password === ""){
+				err("\u8bf7\u8f93\u5165\u5bc6\u7801."); //请输入密码
+				$password.focus();
+				return false;
+			}
+
+			var data = {
+				userName: account, 
+				password: password,
+				isRemember: remember,
+				backUrl: backUrl
+			};
+
+			$submit.val("\u6b63\u5728\u767b\u5f55").prop("disabled", true); //正在登录
+
+			$.get("//img.familydoctor.com.cn/component/common/scripts/aes.js", function(){
+				getFdLoginToken(data, function(){
+					$submit.val("\u767b\u5f55\u6210\u529f").prop("disabled", false); //登录成功
+				});
+			});
+		});
+
+		$account.keydown(function(e){
+			if(e.keyCode === 13){
+				$password.focus();
+			}
+		});
+
+		$password.keydown(function(e){
+			if(e.keyCode === 13){
+				$submit.trigger("click");
+			}
+		});
+
+		function getFdLoginToken (data, callback) {
+			$.ajax({
+				url: "//passport.familydoctor.com.cn/Api/GetToken",
+				cache: false,
+				dataType: "jsonp",
+				jsonp: "callBackUrl",
+				success: function (result) {
+					console.log(result)
+					if (!result.Bool) {
+						alert(result.ErrorMessage);
+						resetBtn();
+						return;
+					}
+
+					var password = aesEncrypt(data.password, result.Data.value);
+					var userName = aesEncrypt(data.userName, result.Data.value);
+
+					fdLogin({
+						userName: userName, 
+						password: password, 
+						token: result.Data.key, 
+						isRemember: data.isRemember,
+						backUrl: data.backUrl
+					}, callback);
+				},
+				error: function () {
+					alert("\u7f51\u7edc\u5f02\u5e38\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5"); //网络异常，请稍后再试
+					resetBtn();
+				}
+			});
+		}
+
+		function fdLogin (data, callback) {
+			$.ajax({
+				url: '//passport.familydoctor.com.cn/Api/LoginByJsonp',
+				cache: false,
+				dataType: "jsonp",
+				jsonp: "callback",
+				data: {
+					"loginValue": data.userName, 
+					"passWord": data.password, 
+					"isRemember": data.isRemember, 
+					"tokenKey": data.token, 
+					"backUrl": data.backUrl
+				},
+				success: function (result) {
+					if (!result.Bool) {
+						alert(result.Error.Message);
+						resetBtn();
+						return;
+					}
+
+					var urls = result.Data;
+					var count = urls.length;
+
+					$.each(urls, function(key, url){
+						$.ajax({
+							url: url,
+							dataType: "jsonp",
+							complete: function(){
+								count--;
+								console.log(count, 2333);
+								if (!count) {
+									loginComplete(data.userName);
+									$loginBox.hide();
+								}
+							}
+						})
+					});
+
+					callback();
+				},
+				error: function () {
+					alert("\u7f51\u7edc\u5f02\u5e38\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5"); //网络异常，请稍后再试
+					resetBtn();
+				}
+			});
+		}
+
+		function loginComplete () {
+			var $info = $("#LoginInfo");
+			var buffer = '';
+
+			buffer += '<span id="loginName">'+ CookieUtil.get("dnt", "username") +'</span>';
+			buffer += '<a class="name" href="//passport.familydoctor.com.cn/" target="_blank">\u4e2a\u4eba\u4e2d\u5fc3</a>'; //个人中心
+			buffer += '[<span id="logoutInfo"><a href="//passport.familydoctor.com.cn/Account/LogOut?refback='+ backUrl +'">\u9000\u51fa</a></span>]'; //退出
+			$info.html(buffer);
+		}
+
+		function getQueryString (url, name) {
+			var reg = new RegExp("(^|\\?|&)"+ name +"=([^&]*)(\\s|&|$)", "i");
+
+			if (reg.test(url)) {
+				return unescape(RegExp.$2.replace(/\+/g, " "));
+			} 
+
+			return "";
+		}
+
+		function resetBtn () {
+			$submit.val("\u767b\u5f55").prop("disabled", false); //登录
+		}
+
+		function err (msg) {
+			$loginWrap.find("#errmsg").html(msg).addClass("red");
+		}        
+	})();
+
+	//左右浮标贴内容
+	(function(){
+		var $window = $(window);
+		var posX;
+		posX = ($window.width()/2) - (1000/2) - 200;
+		if (posX<0)
+		{
+			posX = 0 ;
+		}
+		if ($("#lFloatAd .fDoctorBox").length>0)
+		{
+			$("#lFloatAd").css({"left": posX});
+		}
+		if ($("#rFloatAd .fDoctorBox").length>0)
+		{
+			$("#rFloatAd").css({"right": posX});
+		}
+	})();
+	
+	//关注今日头条、微信，展示二维码
+	(function(){
+		var $wrap = $("#focus-wechat-toutiao");
+
+		if (!$wrap.length) { return; }
+
+		var imgs = [
+			"//img.familydoctor.com.cn/images/aboutus/apps/code290X210.jpg",
+			"//img.familydoctor.com.cn/images/aboutus/apps/code-toutiao.png"
+		];
+
+		var box = document.createElement("div");
+		var $box = $(box);
+
+		box.className = "wechat-box hide";
+		document.body.appendChild(box);
+
+		$wrap.on("mouseenter", ".btn-focus", function () {
+			var pos = $(this).offset();
+			var index = parseInt($(this).attr("data-i"));
+
+			$box.css({top: pos.top + 25, left: pos.left - 110, position: "absolute"});
+			$box.html('<img src="'+ imgs[index] +'">').show();
+		});
+
+		$box.mouseenter(function(){
+			$box.show();
+		}).mouseleave(function(){
+			$box.hide();
+		});
+
+		$(document).on("click", function(e){
+			if(!$(e.target).is($box)){
+				$box.hide();
+			}
+		});
+	})();
+});
+
+//文章页左边画中画广告上移
+function upRwPip() {
+	$(document).ready(function(){
+	var rw=$("#viewContent p").length;
+	var pip=$(".adExtra").html();
+	var insertP=0;
+	var lastP="";
+	if(rw>0){
+		for (i=rw-1;i>0 ;i--)
+		{
+			lastP=lastP+$("#viewContent p").eq(i).text()
+			if(lastP.length>250){
+				insertP=i;
+				break;
+			}
+		}
+		$("#viewContent p").eq(insertP).before("<div class=\"adLeftPip\">"+pip+"</div>");
+	}
+	else{
+		$("#viewContent").html().after("<div class=\"adLeftPip\">"+pip+"</div>");
+	}
+	});
+}
+
+//视频区
+function AddVideo(vid) {
+	$.ajax({
+		type: "get",
+		url: "//api.cms.familydoctor.com.cn/article/get?token=B26D842D8D474CD5851192003C351C9A&id="+vid+"&callback=?",
+		dataType:"jsonp",
+		success:function(data){
+			if (data.VideoUrl!="")
+			{
+				var VideoStr=data.VideoUrl.replace(/\"990\"/g,"\"620\"");
+				VideoStr=VideoStr.replace(/\"515\"/g,"\"387\"");
+				VideoStr=VideoStr.replace(/width=990/g,"width=620");
+				VideoStr=VideoStr.replace(/height=515/g,"height=387");
+				$("#viewContent").prepend("<div class=\"inner-video\"><div class=\"video-title\"><h3>相关视频：<a href=\""+data.Url+"\" target=\"_blank\">"+data.Title+"</a></h3></div>"+VideoStr+"</div>");
+			}
+		},
+		error: function() {	}
+	});
+}
+
+//调查问卷区
+function getPoll(pid) {
+	$.ajax({
+		type: "get",
+		url: "//api.cms.familydoctor.com.cn/Survey/Process/"+pid+"",
+		dataType:"jsonp",
+		success:function(data){
+			if (data.Success)
+			{
+				function showquestion() {
+					questionStr+='<div class="pollModule"><div class="titleBar" id="surveyTitle"><h3>'+data.Title+'</h3></div>';
+					questionStr+='<div class="pollSummary"><p>'+data.Summary+'</p></div>'
+					questionStr+='<div id="surveyformdiv" class="tpQuestion">';
+					questionStr+='<form id="surveyform" method="post">';
+					for (var i in data.Questions)
+					{
+						if (data.Questions[i].IsRequired)
+						{
+							questionStr+='<dl><dt>'+data.Questions[i].Title+'<span> * </span></dt>';
+						}
+						else
+						{
+							questionStr+='<dl><dt>'+data.Questions[i].Title+'</dt>';
+						}
+						switch(data.Questions[i].Type){
+							case 0:
+								for (var j in data.Questions[i].Answer)
+								{
+									questionStr+='<dd><input name="Question_'+data.Questions[i].Id+'" id="Question_'+data.Questions[i].Id+'_'+data.Questions[i].Answer[j].Id+'" type="radio" value="'+data.Questions[i].Answer[j].Id+'"><label for="Question_'+data.Questions[i].Id+'_'+data.Questions[i].Answer[j].Id+'">'+data.Questions[i].Answer[j].Title+'</label></dd>';
+								}
+								break;
+							case 1:
+								for (var j in data.Questions[i].Answer)
+								{
+									questionStr+='<dd><input name="Question_'+data.Questions[i].Id+'" id="Question_'+data.Questions[i].Id+'_'+data.Questions[i].Answer[j].Id+'" type="checkbox" value="'+data.Questions[i].Answer[j].Id+'"><label for="Question_'+data.Questions[i].Id+'_'+data.Questions[i].Answer[j].Id+'">'+data.Questions[i].Answer[j].Title+'</label></dd>';
+								}
+								break;
+							case 2:
+								questionStr+='<dd><input name="Question_'+data.Questions[i].Id+'_Input" type="text" value=""></dd>';
+								break;
+						}
+						questionStr+='</dl></dt>';
+					}
+					questionStr+='<div class="button"><a href="javascript:;" id="showresult" class="bule">查看统计结果</a><button type="button" class="jg" id="submit_form">提交</button></div></form></div></div>';
+				}
+				function showresult() {
+					resultStr+='<div class="pollModule"><div class="titleBar" id="surveyTitle"><h3>'+data.Title+'</h3>（调查结果）</div>';
+					resultStr+='<div id="surveyBody" class="tpResault">';
+					for (var i in data.Questions)
+					{
+						if(data.Questions[i].Type==0 || data.Questions[i].Type==1){
+							resultStr+='<dl><dt>'+data.Questions[i].Title+'</dt>';
+							for (var j in data.Questions[i].Answer)
+							{
+								resultStr+='<dd><div class="tpQ">'+data.Questions[i].Answer[j].Title+'</div><div class="tpA"><div class="tpBar"><div class="persent'+j+'" style="width:'+data.Questions[i].Answer[j].Percentage+'%;"></div></div><div class="perNum">'+data.Questions[i].Answer[j].Count+'<span>('+data.Questions[i].Answer[j].Percentage+'%)</span> </div></div></dd>';
+							}
+							resultStr+='</dl></dt>';
+						}
+					}
+					resultStr+='</div><div class="button"><a href="javascript:;" id="showquestion" class="bule">点击这里参与调查</a></div></div>';
+				}
+				function submitPoll() {
+					var checkform=1;
+					var checkforminfo="";
+					var qid=0;
+
+					for (var i in data.Questions)
+					{
+						qid=parseInt(i)+1;
+						if (data.Questions[i].IsRequired)
+						{
+
+							switch(data.Questions[i].Type){
+							case 0:
+								if (!$("input[name='Question_"+data.Questions[i].Id+"']:radio:checked").val())
+								{
+									checkform=0;
+									checkforminfo+="请完成第"+qid+"题\n"
+								}
+								break;
+							case 1:
+								if (!$("input[name='Question_"+data.Questions[i].Id+"']:checkbox:checked").val())
+								{
+									checkform=0;
+									checkforminfo+="请完成第"+qid+"题\n"
+								}
+								break;
+							case 2:
+								if ($("input[name='Question_"+data.Questions[i].Id+"_Input']").val()=="")
+								{
+									checkform=0;
+									checkforminfo+="请完成第"+qid+"题\n"
+								}
+								break;
+							}
+						}
+
+					}
+					if (checkform==1)
+					{
+						$.post("//api.cms.familydoctor.com.cn/Survey/Process/"+pid+"?callback=",$("#surveyform").serialize(),
+						function(data,status){
+							if (data.Msg=="提交成功")
+							{
+								$('#surveyform')[0].reset();
+								alert("提交成功，感谢参与！");
+								resultStr='';
+								showresult();
+								$("#pollarea").html(resultStr);
+							}
+							else {
+								alert(data.Msg);
+							}
+						});
+					}
+					else
+					{
+						alert(checkforminfo);
+					}
+				}
+				var status=0;
+				var questionStr='';
+				var resultStr='';
+				if (data.SysDate>=data.StartDate && data.SysDate<=data.EndDate)
+				{
+					status=1;
+				}
+				else if (data.SysDate>data.EndDate)
+				{
+					status=-1;
+				}
+				if (data.Status==1 || status==1)
+				{
+					showquestion();
+					$("#pollarea").html(questionStr);
+				}
+				else if (data.Status==-1 || status==-1)
+				{
+					showresult();
+					$("#pollarea").html(resultStr);
+				}
+				$(document).on("click", "#showquestion", function(){
+					questionStr=''
+					showquestion();
+					$("#pollarea").html(questionStr);
+				});
+				$(document).on("click", "#showresult", function(){
+					resultStr='';
+					showresult();
+					$("#pollarea").html(resultStr);
+				});
+				$(document).on("click", "#submit_form", function(){
+					submitPoll();
+				});
+			}
+		},
+		error: function() {	}
+	});
+}
+
+function wideScreenFlex () {
+	var $tool = $('#art-flex-side-tool');
+	
+	if (!$tool.length) {
+		return;
+	}
+	
+	var divs = [];
+	var $tobar = $('#global-top-bar .global-inner');
+	var $artTabBody = $('.art-tab-cont');
+	var $toplink = $('.global-top-links-wrap');
+	var $path = $('.path');
+	var $artTabHead = $('.art-tab-wrap');
+	var $main = $('.main');
+	var items = [$toplink, $path, $artTabHead, $main];
+	var winWidth = 0;
+	var defaultTop = 500;
+
+	var check = function () {
+		winWidth = document.documentElement.clientWidth || document.body.clientWidth;
+		divs.length && remove();
+
+		if (winWidth < 1220) {
+			return;
+		}
+
+		init();
+	};
+
+	var init = function () {
+		var render = function ($item) {
+			var selector = $item.prevObject['selector'];
+			var div = document.createElement('div');
+
+			divs.push(div);
+			$(div).addClass('art-flex-side art-flex-'+ selector.substr(1));
+
+			$item.wrap('<div class="art-flex-wrap"></div>');
+			$item.before(div);
+
+			if (selector === '.main') {
+				$tool.appendTo($(div)).removeClass('hide');
+				$item.css({clear: 'none'});
+			}
+		};
+
+		for (var i = 0, len = items.length; i < len; i++) {
+			if (items[i].length) {
+				render(items[i].eq(0));
+			}
+		}
+
+		$tobar.addClass('art-flex-top-bar');
+		$artTabBody.addClass('art-flex-art-tab-cont');
+		defaultTop = $tool.offset().top;
+	};
+
+	var remove = function  () {
+		var i = divs.length;
+
+		while (i--) {
+			var div = divs[i];
+			
+			$(div).unwrap();
+			div && div.parentNode.removeChild(div);
+		}
+
+		$tobar.removeClass('art-flex-top-bar');
+		$artTabBody.removeClass('art-flex-art-tab-cont');
+		divs.length = 0;
+	};
+
+	
+	var throttle = function (fn, delay, atleast) {
+		var timer = null;
+		var previous = null;
+
+		return function () {
+			var now = +new Date();
+
+			if (!previous) { previous = now; }
+
+			if (now - previous > atleast) {
+				fn();
+				previous = now;
+			} else {
+				clearTimeout(timer);
+				timer = setTimeout(function () {
+					fn();
+				}, delay);
+			}
+		}
+	}
+
+	var fixedTool = throttle(function () {
+		var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+		var scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+		var winHeight = window.innerHeight ||  document.documentElement.clientHeight || document.body.clientHeight;
+
+		scrollHeight = scrollHeight - 300;
+
+		if (scrollTop > defaultTop) {
+			$tool.css({position: 'fixed', top: 30, left: (winWidth - 1220)/2});
+		} else {
+			$tool.css({position: 'relative', top: 0, left: 0});
+		}
+		
+		if (scrollTop + winHeight > scrollHeight) {
+			$tool.css({position: 'relative', top: 0, left: 0});
+		}
+	}, 200, 1000);
+
+	$(window).on('resize', function () {
+		check();
+		fixedTool();
+	})
+
+	$(window).on('scroll', fixedTool);
+
+	check();
+}

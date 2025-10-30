@@ -1,0 +1,31 @@
+﻿// $('#ccs').html(!CUSTOMER.ready+JSON.stringify(window.CUSTOMER))
+// document.getElementById('ccs').innerHTML(123123)
+// if(CUSTOMER){
+// 	document.write('a'+"-----")
+// }else{
+// 	document.write('b'+"-----")
+// 	document.write('c'+"-----")
+
+// }
+// document.write(JSON.stringify(window.CUSTOMER))
+
+
+if (!window.CUSTOMER && window.MIP && window.MIP.sandbox && window.MIP.sandbox.CUSTOMER) {
+    window.CUSTOMER = window.MIP.sandbox.CUSTOMER;
+}
+
+CUSTOMER.ready(function(customer){
+    
+    
+
+
+                
+                return;
+                
+    
+
+});
+
+if (typeof mipgg === 'function') {
+    mipgg();
+}

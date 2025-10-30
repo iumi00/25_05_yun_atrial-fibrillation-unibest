@@ -85,21 +85,26 @@ export const useUserStore = defineStore(
      * 微信登录 - 【已修改为我们自己的高效流程】
      */
     const wxLogin = async () => {
+      console.log('🔄 【开始执行微信登录流程】')
       try {
         // 步骤 1: 调用 api/login.ts 中的 getWxCode 获取 code
+        console.log('🔍 [步骤1] 开始获取微信 Code...')
         const codeRes = await getWxCode()
         console.log('✅ [步骤1] 获取微信 Code 成功:', codeRes.code)
 
         // 步骤 2: 调用我们修改后的 wxLogin API，将 code 发送到我们自己的后端
         // _wxLogin 是从 api/login.ts 导入的 wxLogin 函数
+        console.log('🚀 [步骤2] 开始向后端发送登录请求，使用 code:', codeRes.code)
+        console.log('📡 [步骤2] 目标API地址: http://localhost:8000/api/users/login')
         const loginRes = await _wxLogin({ code: codeRes.code })
-        console.log('✅ [步骤2] 后端登录成功，返回:', loginRes)
+        console.log('✅ [步骤2] 后端登录请求完成，返回数据:', JSON.stringify(loginRes))
 
         // 步骤 3: 直接使用后端返回的数据设置用户信息和 token
-        // 注意：我们的后端接口设计得很好，一次性返回了所有需要的数据
-        if (loginRes.data && loginRes.data.token) {
+        console.log('🔍 [步骤3] 检查返回数据结构...')
+        if (loginRes && loginRes.data && loginRes.data.token) {
           // 从后端返回的数据中提取 userInfo 和 token
           const { userInfo, token } = loginRes.data;
+          console.log('✅ [步骤3] 数据结构验证通过，提取到token:', token)
 
           // 调用本 store 内的 setUserInfo 方法来更新状态
           setUserInfo({ ...userInfo, token });
@@ -108,11 +113,14 @@ export const useUserStore = defineStore(
           return loginRes // 返回完整的后端响应
         } else {
           // 如果后端没有按预期返回数据，进行错误处理
+          console.error('❌ [步骤3] 数据结构验证失败:', JSON.stringify(loginRes || '无返回数据'))
           toast.error('登录凭证解析失败，请重试')
           return Promise.reject(loginRes)
         }
       } catch (error) {
-        console.error('❌ 微信登录流程出错:', error)
+        console.error('❌ 微信登录流程出错，完整错误信息:', error)
+        console.error('❌ 错误类型:', error?.constructor?.name)
+        console.error('❌ 错误详情:', JSON.stringify(error || '未知错误'))
         toast.error('登录请求失败，请检查网络或联系管理员')
         return Promise.reject(error)
       }

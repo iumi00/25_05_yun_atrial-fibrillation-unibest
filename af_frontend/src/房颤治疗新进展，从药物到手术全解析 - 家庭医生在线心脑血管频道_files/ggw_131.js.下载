@@ -1,0 +1,33 @@
+﻿
+
+        
+// $('#ccs').html(!CUSTOMER.ready+JSON.stringify(window.CUSTOMER))
+// document.getElementById('ccs').innerHTML(123123)
+// if(CUSTOMER){
+// 	document.write('a'+"-----")
+// }else{
+// 	document.write('b'+"-----")
+// 	document.write('c'+"-----")
+
+// }
+// document.write(JSON.stringify(window.CUSTOMER))
+
+
+if (!window.CUSTOMER && window.MIP && window.MIP.sandbox && window.MIP.sandbox.CUSTOMER) {
+    window.CUSTOMER = window.MIP.sandbox.CUSTOMER;
+}
+
+CUSTOMER.ready(function(customer){
+    var list = []; 
+    
+  
+    
+    customer.mutiple({pid: 131, list: list, limit: 3, type: "vertical", duration: 0, styles:{position:"fixed",bottom:"150px",left:"0",width:"200px",border:"2px solid #3983e5",zIndex:"999",diy:"isClose:true,isName:true"}});
+    
+    
+
+});
+
+if (typeof mipgg === 'function') {
+    mipgg();
+}

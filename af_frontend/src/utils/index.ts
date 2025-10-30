@@ -147,26 +147,43 @@ export const needLoginPages: string[] = getAllPages('needLogin').map((page) => p
 export const getEnvBaseUrl = () => {
   // 请求基准地址
   let baseUrl = import.meta.env.VITE_SERVER_BASEURL
+  console.log('📡 API基础URL验证 - 默认VITE_SERVER_BASEURL:', baseUrl)
 
   // 微信小程序端环境区分
   if (isMpWeixin) {
-    const {
-      miniProgram: { envVersion },
-    } = uni.getAccountInfoSync()
+    try {
+      const {
+        miniProgram: { envVersion },
+      } = uni.getAccountInfoSync()
+      console.log('📱 微信小程序环境:', envVersion)
 
-    switch (envVersion) {
-      case 'develop':
-        baseUrl = import.meta.env.VITE_SERVER_BASEURL__WEIXIN_DEVELOP || baseUrl
-        break
-      case 'trial':
-        baseUrl = import.meta.env.VITE_SERVER_BASEURL__WEIXIN_TRIAL || baseUrl
-        break
-      case 'release':
-        baseUrl = import.meta.env.VITE_SERVER_BASEURL__WEIXIN_RELEASE || baseUrl
-        break
+      switch (envVersion) {
+        case 'develop':
+          const devUrl = import.meta.env.VITE_SERVER_BASEURL__WEIXIN_DEVELOP
+          console.log('🔧 开发环境URL:', devUrl || '未设置，使用默认URL')
+          baseUrl = devUrl || baseUrl
+          break
+        case 'trial':
+          const trialUrl = import.meta.env.VITE_SERVER_BASEURL__WEIXIN_TRIAL
+          console.log('🧪 体验版URL:', trialUrl || '未设置，使用默认URL')
+          baseUrl = trialUrl || baseUrl
+          break
+        case 'release':
+          const releaseUrl = import.meta.env.VITE_SERVER_BASEURL__WEIXIN_RELEASE
+          console.log('🚀 正式版URL:', releaseUrl || '未设置，使用默认URL')
+          baseUrl = releaseUrl || baseUrl
+          break
+        default:
+          console.log('❓ 未知环境:', envVersion)
+      }
+    } catch (error) {
+      console.error('❌ 获取微信小程序环境信息失败:', error)
     }
+  } else {
+    console.log('🌐 非微信小程序环境')
   }
-
+  
+  console.log('✅ 最终使用的API基础URL:', baseUrl)
   return baseUrl
 }
 

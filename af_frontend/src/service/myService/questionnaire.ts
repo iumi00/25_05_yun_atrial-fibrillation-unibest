@@ -9,12 +9,12 @@ const getBaseUrl = () => {
     return import.meta.env.VITE_API_URL
   }
   // 默认后端地址
-  return 'http://localhost:3000'
+  return 'http://localhost:8000'
 }
 
 const baseUrl = getBaseUrl()
 export function _api_getQuestionnaireList(data: { type: string }, headers = {}): Promise<ApiResponse<QuestionItem[]>> {
-  return $http.get(`/api/user/question`, { params:data, headers:{
+  return $http.get(`/api/questionnaire/question`, { params:data, headers:{
     'Content-Type': 'application/json',
       ...headers
   } })
@@ -28,18 +28,18 @@ export function _api_commitData(data: {
   submitTime: string,
   status: string
 }, headers:{}): Promise<ApiResponse<{ answerId: number }>> {
-  return $http.post(`/api/user/commit`, data, { headers })
+  return $http.post(`/api/questionnaire/commit`, data, { headers })
 }
 
 export function _api_delAnswer(id: string, headers): Promise<ApiResponse> {
-  return $http.delete(`/api/user/answer/${id}`, { headers })
+  return $http.delete(`/api/questionnaire/answer/${id}`, { headers })
 }
 
 export function _api_getMyQuestionnaireHistory(data: {
   userId: string;
   type?: string;
 }, headers:{}): Promise<ApiResponse<any[]>> {
-  return $http.get(`/api/user/history`,{params:data,
+  return $http.get(`/api/questionnaire/history`,{params:data,
     headers:{
       'Content-Type': 'application/json',
       ...headers
@@ -47,8 +47,8 @@ export function _api_getMyQuestionnaireHistory(data: {
   })
 }
 
-export function _api_getMyQuestionnaireDetail(data: { id: string }, headers:{}): Promise<ApiResponse<any>> {
-  return $http.get(`/api/user/detail/:id`, {params:data, 
+export function _api_getMyQuestionnaireDetail(id: string, headers:{}): Promise<ApiResponse<any>> {
+  return $http.get(`/api/questionnaire/detail/${id}`, {
     headers:{
       'Content-Type': 'application/json',
       ...headers

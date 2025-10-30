@@ -16,7 +16,7 @@ export interface ILoginForm {
  * @returns ICaptcha 验证码
  */
 export const getCode = () => {
-  return http.get<ICaptcha>('/user/getCode')
+  return http.get<ICaptcha>('http://localhost:8000/api/user/getCode')
 }
 
 /**
@@ -24,35 +24,36 @@ export const getCode = () => {
  * @param loginForm 登录表单
  */
 export const login = (loginForm: ILoginForm) => {
-  return http.post<IUserLogin>('/user/login', loginForm)
+  return http.post<IUserLogin>('/api/user/login', loginForm)
 }
 
 /**
  * 获取用户信息
  */
 export const getUserInfo = () => {
-  return http.get<IUserInfoVo>('/user/info')
+  return http.get<IUserInfoVo>('/api/user/info')
 }
 
 /**
  * 退出登录
  */
 export const logout = () => {
-  return http.get<void>('/user/logout')
+  return http.get<void>('/api/user/logout')
 }
 
 /**
  * 修改用户信息
  */
 export const updateInfo = (data: IUpdateInfo) => {
-  return http.post('/user/updateInfo', data)
+  return http.post('/api/user/updateInfo', data)
 }
 
 /**
  * 修改用户密码
  */
 export const updateUserPassword = (data: IUpdatePassword) => {
-  return http.post('/user/updatePassword', data)
+  console.log('🚨 updateUserPassword请求使用完整URL: http://localhost:8000/api/user/updatePassword')
+  return http.post('http://localhost:8000/api/user/updatePassword', data)
 }
 
 /**
@@ -84,10 +85,11 @@ export const getWxCode = () => {
  * @returns Promise 包含我们后端返回的 token 和 userInfo
  */
 export const wxLogin = (data: { code: string }) => {
+  console.log('🚨 微信登录请求使用完整URL: http://localhost:8000/api/users/login')
   // 注意：我们这里写了完整的 URL，因为 http 客户端的基础路径可能配置的是旧的后端地址。
   // 这样做可以确保请求一定发到我们自己的新后端服务上。
   return http.post<{ token: string; userInfo: IUserInfoVo }>(
-    'http://localhost:3000/api/users/login',
+    'http://localhost:8000/api/users/login',
     data,
   )
 }

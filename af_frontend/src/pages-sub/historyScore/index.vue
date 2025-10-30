@@ -9,7 +9,7 @@
 
 <!-- <script setup lang="ts">
 import historyItemVue from '@/components/historyItem/historyItem.vue'
-import { _api_getMyQuestionnaireHistory } from '@/service'
+// 已在下面导入新API
 
 const accessToken = uni.getStorageSync('accessToken')
 const userId = uni.getStorageSync('userId')
@@ -53,7 +53,7 @@ _init()
 </route>
 
 <script>
-import { _api_getMyQuestionnaireHistory } from '@/service/myService/questionnaire'
+import { getQuestionnaireHistory } from '@/api/modules/questionnaire'
 import { useUserStore } from '@/store'
 
 export default {
@@ -78,7 +78,7 @@ export default {
         const userId = this.userStore.userInfo.id
         console.log('加载历史记录，用户ID:', userId)
         
-        const response = await _api_getMyQuestionnaireHistory(
+        const response = await getQuestionnaireHistory(
           { userId: String(userId) },
           { Authorization: this.userStore.userInfo.token }
         )

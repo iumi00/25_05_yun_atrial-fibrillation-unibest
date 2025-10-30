@@ -242,53 +242,63 @@
 	}
 	// #endif
 	const getTouch = (e) => {
-		const touches = e.touches[0]
-		// #ifdef WEB
-		const rect = chart!.getZr().dom.getBoundingClientRect();
-		const touch = {
-			x: touches.clientX - rect.left,
-			y: touches.clientY - rect.top
+			// 确保touches数组存在并有元素
+			if (!e.touches || e.touches.length === 0) {
+				return { x: 0, y: 0 }
+			}
+			const touches = e.touches[0]
+			// #ifdef WEB
+			if (chart && chart.getZr && chart.getZr().dom) {
+				const rect = chart.getZr().dom.getBoundingClientRect();
+				return {
+					x: touches.clientX - rect.left,
+					y: touches.clientY - rect.top
+				}
+			}
+			// #endif
+			// #ifndef WEB 或 WEB环境下chart相关对象不存在时的默认值
+			return {
+				x: touches.x || 0,
+				y: touches.y || 0
+			}
 		}
-		// #endif
-		// #ifndef WEB
-		const touch = {
-			x: touches.x,
-			y: touches.y
-		}
-		// #endif
-		return touch
-	}
 	const touchstart = (e) => {
-		if (chart == null) return
-		const handler = chart.getZr().handler;
-		const touch = getTouch(e)
-		dispatch.call(handler, 'mousedown', touch)
-		dispatch.call(handler, 'click', touch)
-	}
-	const touchmove = (e) => {
-		if (chart == null) return
-		const handler = chart.getZr().handler;
-		const touch = getTouch(e)
-		dispatch.call(handler, 'mousemove', touch)
-		// const rect = chart.getZr().dom.getBoundingClientRect()
-		// handler.dispatch('mousemove', {
-		// 	zrX: e.touches[0].clientX - rect.left,
-		// 	zrY: e.touches[0].clientY - rect.top
-		// })
-	}
-	const touchend = (e) => {
-		if (chart == null) return
-		const handler = chart.getZr().handler;
-
-		const touch = {
-			x: 999999999,
-			y: 999999999
+			if (chart == null || !chart.getZr) return
+			const zr = chart.getZr();
+			if (!zr || !zr.handler) return
+			const handler = zr.handler;
+			const touch = getTouch(e)
+			dispatch.call(handler, 'mousedown', touch)
+			dispatch.call(handler, 'click', touch)
 		}
+	const touchmove = (e) => {
+			if (chart == null || !chart.getZr) return
+			const zr = chart.getZr();
+			if (!zr || !zr.handler) return
+			const handler = zr.handler;
+			const touch = getTouch(e)
+			dispatch.call(handler, 'mousemove', touch)
+			// const rect = chart.getZr().dom.getBoundingClientRect()
+			// handler.dispatch('mousemove', {
+			// 	zrX: e.touches[0].clientX - rect.left,
+			// 	zrY: e.touches[0].clientY - rect.top
+			// })
+		}
+	const touchend = (e) => {
+			if (chart == null || !chart.getZr) return
+			const zr = chart.getZr();
+			if (!zr || !zr.handler) return
+			const handler = zr.handler;
 
-		dispatch.call(handler, 'mousemove', touch)
-		dispatch.call(handler, 'touchend', touch)
+			const touch = {
+				x: 999999999,
+				y: 999999999
+			}
 
-	}
+			dispatch.call(handler, 'mousemove', touch)
+			dispatch.call(handler, 'touchend', touch)
+
+		}
 	async function init(echarts : any, ...args : any[]) : Promise<Echarts> {
 		if (echarts == null) {
 			console.error('请确保已经引入了 ECharts 库');

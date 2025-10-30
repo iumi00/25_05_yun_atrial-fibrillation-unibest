@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { _api_getCaptcha, _api_login } from '@/service'
+import { getCode, login } from '@/api/modules/auth'
 
 let phone = ref('13016648302')
 let pwd = ref('123456Aa')
@@ -79,7 +79,8 @@ if (accessToken && refreshToken && userId) {
 async function getImageVerificationCode() {
   const captchaId = `${new Date().getTime()}__${Math.random()}`
   // 发送请求获取图片验证码
-  const res = await _api_getCaptcha(captchaId)
+  const res = await getCode()
+  captchaId.value = res.data.uuid
   // 将获取到的验证码图片URL赋值给verificationSrc
   console.log(res)
 
@@ -105,7 +106,7 @@ async function imageClickHandler() {
 async function login() {
   // 调用登录API，传入用户输入的电话号码、密码和验证码
   // 使用await关键字等待API调用完成
-  const res = await _api_login({
+  const res = await login({
     phone: phone.value?.trim(),
     password: pwd.value?.trim(),
     captcha: verificationCode.value?.trim(),

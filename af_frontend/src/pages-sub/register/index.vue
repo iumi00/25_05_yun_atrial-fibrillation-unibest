@@ -42,7 +42,7 @@
 </template>
 
 <script setup lang="ts">
-import { _api_getPhoneVerificationCode, _api_registerByPhone } from '@/service'
+import { getPhoneVerificationCode, registerByPhone } from '@/api/modules/user'
 import wait from '@/utils/wait'
 import { isValidPhoneNumber } from '@/utils/regs'
 
@@ -62,7 +62,7 @@ async function getCode() {
     return
   }
 
-  const res = _api_getPhoneVerificationCode(phone.value)
+  const res = await getPhoneVerificationCode(phone.value)
 
   getCodeFlag.value = true
 
@@ -87,7 +87,7 @@ async function register() {
   // })
   console.log(111111)
 
-  const res = await _api_registerByPhone({
+  const res = await registerByPhone({
     phone: phone.value,
     password: pwd.value,
     code: code.value,

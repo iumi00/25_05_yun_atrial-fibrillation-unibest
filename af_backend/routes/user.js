@@ -22,4 +22,7 @@ router.put('/profile', authMiddleware, userController.updateProfile);
 
 router.post('/phone', authMiddleware, userController.decryptPhone);
 
+// 【新增】兼容前端路径格式的微信登录路由
+router.post('/user/wechat/login', userController.wechatLogin);
+
 module.exports = router;

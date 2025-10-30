@@ -4,7 +4,7 @@ const path = require('path'); // 【新增】引入 Node.js 路径处理模块
 const fs = require('fs'); // 【新增】引入 Node.js 文件系统模块
 const multer = require('multer'); // 【新增】引入 multer
 
-require('./config/db.js'); // 导入并执行数据库连接逻辑'); // 导入并执行数据库连接逻辑
+require('./config/db.js'); // 导入并执行数据库连接逻辑
 const morgan = require('morgan');
 const winston = require('winston');
 const swaggerUi = require('swagger-ui-express');
@@ -34,7 +34,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 // 2. 将 public 目录作为静态资源目录
-// 这样，外部就可以通过 http://localhost:3000/uploads/图片名.jpg 来访问图片
+// 这样，外部就可以通过 http://localhost:8000/uploads/图片名.jpg 来访问图片
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- 【新增】文件上传配置和路由 ---
@@ -82,7 +82,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // 错误处理中间件
 app.use(errorHandler);
 
-const PORT = config.server.port || 3000;
+const PORT = config.server.port || 8000;
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
-}); 
+});

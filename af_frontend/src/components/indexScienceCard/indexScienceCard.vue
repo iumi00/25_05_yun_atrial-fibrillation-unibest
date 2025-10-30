@@ -21,6 +21,10 @@ export default {
     return {}
   },
   props: {
+    id: {
+      type: Number,
+      default: 0
+    },
     src: {
       type: String,
       default: '/static/logo.png',
@@ -35,19 +39,52 @@ export default {
     },
     href: {
       type: String,
-      default: `https: //cn.bing.com/`,
+      default: 'https://cn.bing.com/',
     },
   },
   methods: {
     navigateHandler(href) {
-      // uni.setClipboardData({
-      //   data: href,
-      // })
-      // uni.showModal({
-      //   content: '已自动复制网址，请在手机浏览器里粘贴该网址',
-      //   showCancel: false,
-      // })
-      window.location.href = href
+      // 根据不同平台使用不同的导航方式
+      try {
+        // 检测是否为本地页面路径
+        if (href.startsWith('/pages/')) {
+          // 本地页面使用navigateTo跳转
+          // #ifdef MP-WEIXIN || H5
+          uni.navigateTo({
+            url: href
+          })
+          // #endif
+        } else {
+          // 小程序环境使用内置浏览器打开外部链接
+          // #ifdef MP-WEIXIN
+          uni.navigateTo({
+            url: `/pages-sub/scienceArticle/index?id=${this.id}&href=${encodeURIComponent(href)}`
+          })
+          // #endif
+          
+          // H5环境直接跳转外部链接
+          // #ifdef H5
+          if (href.startsWith('http')) {
+            window.open(href, '_blank')
+          } else {
+            window.location.href = href
+          }
+          // #endif
+        }
+      } catch (error) {
+        console.error('导航错误:', error)
+        // 兜底方案：复制链接到剪贴板
+        uni.setClipboardData({
+          data: href,
+          success: () => {
+            uni.showModal({
+              title: '提示',
+              content: '文章链接已复制，请在浏览器中粘贴打开',
+              showCancel: false
+            })
+          }
+        })
+      }
     },
   },
 }

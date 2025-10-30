@@ -2,14 +2,14 @@
 const express = require('express');
 const router = express.Router();
 const measurementController = require('../controllers/measurementController');
-const auth = require('../middlewares/auth');
+const { authMiddleware: auth } = require('../middlewares/auth');
 
 // 测量相关路由(需要认证)
-router.post('/start', measurementController.startMeasurement);
-router.post('/upload',  measurementController.uploadMeasurementData);
-router.post('/end',  measurementController.endMeasurement);
-router.get('/history', measurementController.getMeasurementHistory);
-router.get('/detail/:measurementId',  measurementController.getMeasurementDetail);
-router.delete('/:measurementId',  measurementController.deleteMeasurement);
+router.post('/start', auth, measurementController.startMeasurement);
+router.post('/upload', auth, measurementController.uploadMeasurementData);
+router.post('/end', auth, measurementController.endMeasurement);
+router.get('/history', auth, measurementController.getMeasurementHistory);
+router.get('/detail/:measurementId', auth, measurementController.getMeasurementDetail);
+router.delete('/:measurementId', auth, measurementController.deleteMeasurement);
 
 module.exports = router;

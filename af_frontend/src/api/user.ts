@@ -19,7 +19,7 @@ export const updateProfile = (data: IProfileData) => {
     // 【新增日志】打印一下我们准备要发送的 token
     console.log('🔵 [前端发送前] updateProfile 即将使用的 Token:', userStore.userInfo.token);
     return http.put(
-        'http://localhost:3000/api/users/profile', // 1. url
+        '/api/users/profile', // 使用相对路径，会自动拼接baseUrl
         data,                                     // 2. data
         undefined,                                // 3. query (我们没有，所以传 undefined)
         {                                         // 4. header (现在在正确的位置了！)
@@ -44,7 +44,7 @@ export const updatePhone = (data: IPhoneData) => {
     console.log('🔵 [前端发送前] updatePhone 即将使用的 Token:', userStore.userInfo.token);
     // http.post 的参数顺序和 http.put 是一样的
     return http.post(
-        'http://localhost:3000/api/users/phone', // 1. url
+        '/api/users/phone', // 使用相对路径，会自动拼接baseUrl
         data,                                    // 2. data
         undefined,                               // 3. query
         {                                        // 4. header

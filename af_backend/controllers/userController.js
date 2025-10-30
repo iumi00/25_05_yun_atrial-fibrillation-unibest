@@ -21,6 +21,14 @@ exports.login = async (req, res, next) => {
   }
 
   try {
+    // 开发环境模拟登录（避免调用真实微信API）
+    // 注意：在生产环境中应注释掉这部分，使用真实的微信API调用
+    console.log('开发环境模拟微信登录');
+    let openid = 'mock_openid_' + Math.random().toString(36).substr(2, 9);
+    let session_key = 'mock_session_key_' + Math.random().toString(36).substr(2, 15);
+    
+    // 如果需要使用真实微信API，取消下面注释并注释掉上面的模拟代码
+    /*
     // 2. 构造请求 URL，向微信服务器换取 openid 和 session_key
     const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${config.wechat.appId}&secret=${config.wechat.appSecret}&js_code=${code}&grant_type=authorization_code`;
 
@@ -38,6 +46,7 @@ exports.login = async (req, res, next) => {
         error: { errcode, errmsg }
       });
     }
+    */
 
     // 5. 使用获取到的 openid 查询数据库，判断用户是否存在
     // 注意：db.query 返回的是一个数组 [rows, fields]，我们只需要 rows
@@ -191,4 +200,13 @@ exports.decryptPhone = async (req, res, next) => {
     }
     next(err);
   }
+};
+
+/**
+ * 微信小程序登录处理 - 兼容前端路径格式
+ * POST /api/user/user/wechat/login
+ */
+exports.wechatLogin = async (req, res, next) => {
+  // 直接调用现有的login函数，保持逻辑一致
+  return exports.login(req, res, next);
 };

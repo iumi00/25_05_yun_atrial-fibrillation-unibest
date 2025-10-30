@@ -42,7 +42,7 @@
         </view>
 
         <!-- 房颤相关症状 - 添加级联效果 -->
-    <view v-else-if="question.type === 'checkbox' && question.itemTitle.includes('房颤相关症状')" class="checkbox-group">
+        <view v-else-if="question.type === 'checkbox' && question.itemTitle.includes('房颤相关症状')" class="checkbox-group">
           <checkbox-group 
             :value="(formData[question.id] as string[]) || []" 
             @change="e => handleCheckboxChange(question.id, e.detail.value)"
@@ -72,7 +72,7 @@
         </view>
         
         <!-- 单选框 -->
-         <view v-else-if="question.type==='radio'">
+        <view v-else-if="question.type==='radio'">
           <radio-group 
           :value="String(formData[question.id])"
           @change="e => handleRadioChange(question.id, e.detail.value)"
@@ -137,7 +137,7 @@
 import dayjs from 'dayjs'
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/store'
-import { _api_getQuestionnaireList, _api_commitData } from '@/service'
+import { getQuestionnaireList, commitQuestionnaire, getQuestionnaireHistory } from '@/api/modules/questionnaire'
 import type { QuestionItem, FormDataValue, DateTimeValue } from '@/types/questionnaire'
 
 const userStore = useUserStore()
@@ -155,7 +155,7 @@ const formData = ref<FormDataValue>({})
 const loadQuestionnaireConfig = async () => {
   try {
     loading.value = true
-    const response = await _api_getQuestionnaireList(
+    const response = await getQuestionnaireList(
       { type: 'CHA2DS2-VASc' },
       { Authorization: accessToken }
     )
@@ -471,7 +471,7 @@ const submitForm = async () => {
     console.log('data',data)
     uni.showLoading({ title: '提交中...' })
 
-    const response = await _api_commitData(data, { accessToken })
+    const response = await commitQuestionnaire(data, { accessToken })
     
     if (response.success) {
       console.log('提交成功:', response)
@@ -511,8 +511,36 @@ const submitForm = async () => {
   }
 }
 
-onMounted(() => {
-  loadQuestionnaireConfig()
+// 检查用户是否有血栓风险评分历史记录
+const checkQuestionnaireHistory = async () => {
+  try {
+    const response = await getQuestionnaireHistory(
+      { userId: String(userId), type: 'CHA2DS2-VASc' },
+      { Authorization: accessToken }
+    )
+    
+    if (response.success && response.data && response.data.length > 0) {
+      console.log('用户有血栓风险评分历史记录:', response.data)
+      uni.showToast({
+        title: `您已完成${response.data.length}次血栓风险评分`,
+        icon: 'none',
+        duration: 3000
+      })
+      return true
+    } else {
+      console.log('用户没有血栓风险评分历史记录')
+      return false
+    }
+  } catch (error) {
+    console.error('检查历史记录失败:', error)
+    return false
+  }
+}
+
+onMounted(async () => {
+  await loadQuestionnaireConfig()
+  // 页面加载时检查历史记录
+  await checkQuestionnaireHistory()
 })
 </script>
 

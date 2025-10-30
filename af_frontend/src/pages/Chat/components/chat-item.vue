@@ -13,21 +13,25 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 const props = defineProps({
   position: {
     type: String,
-    default: 'left', // 默认值为 'left'
-    validator: (value) => ['left', 'right'].includes(value), // 验证值只能是 'left' 或 'right'
+    default: 'left',
+    validator: (value) => ['left', 'right'].includes(value),
   },
   text: {
     type: String,
-    default: 'test',
+    default: '',
   },
-  img: {},
+  img: {
+    type: String,
+    default: '',
+  },
 })
 
-const textFlag = computed(() => props.text.length > 1)
-const imgFlag = computed(() => props.img.length > 10)
+const textFlag = computed(() => props.text && props.text.length > 0)
+const imgFlag = computed(() => props.img && typeof props.img === 'string' && props.img.length > 10)
 </script>
 
 <style scoped lang="scss">

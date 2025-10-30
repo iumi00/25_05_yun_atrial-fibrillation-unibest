@@ -10,8 +10,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useUserStore } from '@/store'
-import { updateProfile as _api_updateProfile, updatePhone as _api_updatePhone } from '@/api/user' // 我们等下会创建这个文件
-import { uploadFile as _api_uploadFile } from '@/api/upload' // 【新增】引入上传 API
+import { updateProfile, updatePhone } from '@/api/modules/user' 
+import { uploadFile } from '@/api/modules/upload'
 import { toast } from '@/utils/toast'
 
 const userStore = useUserStore()
@@ -33,7 +33,7 @@ async function onChooseAvatar(e: any) {
   try {
     toast.loading('正在上传头像...')
     // 调用上传接口
-    const result = await _api_uploadFile(tempFilePath)
+    const result = await uploadFile(tempFilePath)
     if (result.url) {
       toast.success('上传成功！')
       // 保存返回的永久 URL
@@ -63,7 +63,7 @@ async function onGetPhoneNumber(e: any) {
 
   try {
     // 调用后端接口，发送加密数据
-    const res = await _api_updatePhone({
+    const res = await updatePhone({
       encryptedData: e.detail.encryptedData,
       iv: e.detail.iv,
     })
@@ -100,7 +100,7 @@ async function handleSave() {
   isLoading.value = true
   try {
     // 调用 API 将新数据发送到后端
-     await _api_updateProfile({
+     await updateProfile({
       nickname: nickname.value,
       phone: phone.value,
       avatar: permanentAvatarUrl.value, // 使用永久 URL
